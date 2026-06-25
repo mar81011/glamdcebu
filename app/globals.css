@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  --brand-cream: #f5f0e8;
+  --brand-beige: #e8ddd0;
+  --brand-brown: #6b4c3b;
+  --brand-brown-dark: #523a2c;
+  --brand-footer: #6b4c3b;
+  --brand-ink: #2c1f17;
+  --brand-muted: #5a4638;
+  --brand-subtle: #756050;
+  --brand-gradient: linear-gradient(180deg, #8b6550 0%, #6b4c3b 50%, #523a2c 100%);
+  --background: var(--brand-cream);
+  --foreground: var(--brand-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-beige: var(--brand-beige);
+  --color-brand-brown: var(--brand-brown);
+  --color-brand-brown-dark: var(--brand-brown-dark);
+  --color-brand-footer: var(--brand-footer);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-subtle: var(--brand-subtle);
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-playfair);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.font-brand-script {
+  font-family: var(--font-brand-script), "Segoe Script", cursive;
+}
+
+/* Footer gradient — buttons reuse this exact same token */
+.brand-gradient-bg {
+  background: var(--brand-gradient);
+}
+
+/* Buttons: same gradient as footer, lighter top aligned for small pills */
+.btn-gradient {
+  background: var(--brand-gradient);
+  background-size: 100% 220%;
+  background-position: center top;
+  color: #fff;
+  box-shadow: none;
+  transition: filter 0.2s;
+}
+
+.btn-gradient:hover {
+  filter: brightness(1.04);
+}
+
+.btn-gradient:active {
+  filter: brightness(0.97);
+}
+
+.btn-gradient-flat {
+  background: var(--brand-gradient);
+  background-size: 100% 220%;
+  background-position: center top;
+  color: #fff;
+}

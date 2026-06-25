@@ -1,0 +1,2 @@
+-- See applied migration via Supabase MCP (initial_schema)
+-- GLAM'D Cebu: service_categories, services, appointments, business_hours, blocked_slots, profiles + RLS
