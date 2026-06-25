@@ -212,7 +212,7 @@ export function ProductCatalog() {
         ) : filtered.length === 0 ? (
           <p className="mt-4 text-sm text-brand-muted">No products in this category.</p>
         ) : (
-          <div className="mt-3 space-y-5 overflow-x-auto">
+          <div className="mt-3 space-y-5">
             <ProductSection
               title="Main services"
               services={mainProducts}
@@ -253,9 +253,9 @@ function ProductSection({
   if (services.length === 0) return null;
 
   return (
-    <div className="min-w-[20rem]">
+    <div>
       <h4 className="font-serif text-sm font-semibold text-brand-ink">{title}</h4>
-      <div className="mt-2 grid grid-cols-[1fr_5.5rem_4.5rem_auto] items-center gap-x-2 gap-y-1 border-b border-brand-brown/10 pb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+      <div className="mt-2 hidden border-b border-brand-brown/10 pb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-subtle sm:grid sm:grid-cols-[1fr_5.5rem_4.5rem_auto] sm:items-center sm:gap-x-3">
         <span>Name</span>
         <span>Price</span>
         <span className="text-center">On</span>
@@ -306,61 +306,92 @@ function ProductRow({
     setSaving(false);
   }
 
+  const deleteButton = (
+    <button
+      type="button"
+      onClick={() => onDelete(service)}
+      className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+    >
+      Delete
+    </button>
+  );
+
   return (
     <div
-      className={`grid grid-cols-[1fr_5.5rem_4.5rem_auto] items-center gap-x-2 py-2.5 ${
+      className={`py-3 sm:grid sm:grid-cols-[1fr_5.5rem_4.5rem_auto] sm:items-center sm:gap-x-3 sm:py-2.5 ${
         !service.is_active ? "opacity-70" : ""
       }`}
     >
-      <div className="min-w-0">
-        <input
-          type="text"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink"
-        />
-        {!service.is_active && (
-          <p className="mt-0.5 text-[10px] text-brand-subtle">Unavailable</p>
-        )}
+      <div className="flex items-end gap-2 sm:block sm:min-w-0">
+        <div className="min-w-0 flex-1">
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-brand-subtle sm:hidden">
+            Name
+          </label>
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink"
+          />
+          {!service.is_active && (
+            <p className="mt-0.5 text-[10px] text-brand-subtle">Unavailable</p>
+          )}
+        </div>
+        <div className="sm:hidden">{deleteButton}</div>
       </div>
 
-      <input
-        type="number"
-        min={0}
-        value={editPrice}
-        onChange={(e) => setEditPrice(e.target.value)}
-        className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink"
-      />
+      <div className="mt-2 grid grid-cols-2 gap-3 sm:mt-0 sm:contents">
+        <div className="min-w-0">
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-brand-subtle sm:hidden">
+            Price
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={editPrice}
+            onChange={(e) => setEditPrice(e.target.value)}
+            className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink"
+          />
+        </div>
 
-      <div className="flex justify-center">
-        <input
-          type="checkbox"
-          checked={service.is_active}
-          onChange={() => onToggle(service)}
-          aria-label={`${service.name} available`}
-          className="h-4 w-4 accent-brand-brown"
-        />
+        <div className="flex items-end justify-between sm:justify-center sm:items-center">
+          <span className="pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-subtle sm:hidden">
+            On
+          </span>
+          <input
+            type="checkbox"
+            checked={service.is_active}
+            onChange={() => onToggle(service)}
+            aria-label={`${service.name} available`}
+            className="h-4 w-4 accent-brand-brown"
+          />
+        </div>
       </div>
 
-      <div className="flex flex-col items-end gap-1">
+      <div className="hidden items-center justify-end gap-2 sm:flex">
         {dirty && (
           <button
             type="button"
             onClick={save}
             disabled={saving || !editName.trim()}
-            className="text-[11px] font-semibold text-brand-brown hover:underline disabled:opacity-50"
+            className="rounded-lg border border-brand-brown/20 px-2.5 py-1.5 text-[11px] font-semibold text-brand-brown hover:bg-brand-cream disabled:opacity-50"
           >
             {saving ? "…" : "Save"}
           </button>
         )}
+        {deleteButton}
+      </div>
+
+      {dirty && (
         <button
           type="button"
-          onClick={() => onDelete(service)}
-          className="text-[11px] font-medium text-red-700 hover:underline"
+          onClick={save}
+          disabled={saving || !editName.trim()}
+          className="mt-2 w-full rounded-lg border border-brand-brown/20 py-2 text-xs font-semibold text-brand-brown hover:bg-brand-cream disabled:opacity-50 sm:hidden"
         >
-          Delete
+          {saving ? "Saving…" : "Save changes"}
         </button>
-      </div>
+      )}
     </div>
   );
 }

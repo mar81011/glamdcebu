@@ -6,7 +6,8 @@ test.describe("GLAM'D Cebu — public flows", () => {
     await expect(page.getByRole("heading", { name: /Beauty & Nails/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Book Now/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /View Schedule/i }).first()).toBeVisible();
-    await expect(page.getByText(/glam'd/i).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /Lashes & Brows/i }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Nails$/i }).first()).toBeVisible();
   });
 
   test("services price list — lashes & brows", async ({ page }) => {

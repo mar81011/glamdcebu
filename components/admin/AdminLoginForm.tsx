@@ -19,6 +19,7 @@ export function AdminLoginForm() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const saved = loadRememberedLogin();
@@ -31,9 +32,10 @@ export function AdminLoginForm() {
     setLoading(true);
     setError("");
 
+    const normalizedEmail = email.trim().toLowerCase();
     const supabase = createClient({ rememberMe });
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
@@ -43,7 +45,7 @@ export function AdminLoginForm() {
       return;
     }
 
-    saveRememberedLogin(rememberMe, email.trim());
+    saveRememberedLogin(rememberMe, normalizedEmail);
     router.push("/admin");
     router.refresh();
   }
@@ -68,7 +70,12 @@ export function AdminLoginForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={(e) => setEmail(e.target.value.trim().toLowerCase())}
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
               required
               className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink focus:border-brand-brown focus:outline-none"
             />
@@ -77,14 +84,26 @@ export function AdminLoginForm() {
             <label className="mb-2 block text-sm font-semibold text-brand-ink">
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={rememberMe ? "current-password" : "off"}
-              required
-              className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink focus:border-brand-brown focus:outline-none"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={rememberMe ? "current-password" : "off"}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 pr-12 text-brand-ink focus:border-brand-brown focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-brand-muted"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
           <label className="flex cursor-pointer items-center gap-2 text-sm text-brand-muted">
             <input
@@ -95,7 +114,13 @@ export function AdminLoginForm() {
             />
             Remember me
           </label>
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-700">
+              {error.toLowerCase().includes("invalid login credentials")
+                ? "Email or password is incorrect. Check for extra spaces and that the password ends with !"
+                : error}
+            </p>
+          )}
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Signing in…" : "Sign in"}
           </Button>

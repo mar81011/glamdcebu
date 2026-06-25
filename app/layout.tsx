@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { DM_Sans, Great_Vibes, Playfair_Display } from "next/font/google";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -30,7 +31,10 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [
+      { url: "/icons/icon-192.png", sizes: "180x180", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -57,7 +61,10 @@ export default function RootLayout({
       className={`${dmSans.variable} ${playfair.variable} ${greatVibes.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-brand-cream text-brand-ink">
-        <Script src="/pwa-install-capture.js" strategy="afterInteractive" />
+        <Script id="pwa-install-capture" strategy="beforeInteractive">
+          {`(function(){window.__glamdPwaInstall=window.__glamdPwaInstall||{deferred:null};window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__glamdPwaInstall.deferred=e;window.dispatchEvent(new Event("glamd-pwa-install-ready"));});})();`}
+        </Script>
+        <ServiceWorkerRegistration />
         {children}
         <InstallPrompt />
       </body>

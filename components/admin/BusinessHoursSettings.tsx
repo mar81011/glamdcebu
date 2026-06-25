@@ -90,34 +90,54 @@ export function BusinessHoursSettings() {
       {loading ? (
         <p className="mt-4 text-sm text-brand-muted">Loading…</p>
       ) : (
-        <div className="mt-4">
-          <div className="overflow-x-auto">
-            <div className="min-w-[20rem]">
-              <div className="grid grid-cols-[5.5rem_1fr_1fr_3.25rem] items-center gap-x-3 border-b border-brand-brown/10 pb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
-                  Day
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
-                  Open
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
-                  Close
-                </span>
-                <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
-                  Off
-                </span>
-              </div>
+        <div className="mt-4 space-y-3">
+          <div className="hidden border-b border-brand-brown/10 pb-2 sm:grid sm:grid-cols-[4.5rem_1fr_1fr_3rem] sm:items-center sm:gap-x-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+              Day
+            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+              Open
+            </span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+              Close
+            </span>
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+              Off
+            </span>
+          </div>
 
-              <div className="divide-y divide-brand-brown/8">
-                {hours.map((row) => (
-                  <div
-                    key={row.day_of_week}
-                    className="grid grid-cols-[5.5rem_1fr_1fr_3.25rem] items-center gap-x-3 py-2.5"
-                  >
-                    <span className="text-sm font-semibold text-brand-ink">
-                      {DAY_LABELS[row.day_of_week].slice(0, 3)}
-                    </span>
+          <div className="divide-y divide-brand-brown/8">
+            {hours.map((row) => (
+              <div key={row.day_of_week} className="py-3 sm:py-2.5">
+                <div className="flex items-center justify-between gap-3 sm:hidden">
+                  <span className="text-sm font-semibold text-brand-ink">
+                    {DAY_LABELS[row.day_of_week]}
+                  </span>
+                  <label className="flex items-center gap-2 text-xs text-brand-muted">
+                    <span>Closed</span>
+                    <input
+                      type="checkbox"
+                      checked={row.is_closed}
+                      onChange={(e) =>
+                        updateDay(row.day_of_week, {
+                          is_closed: e.target.checked,
+                        })
+                      }
+                      aria-label={`${DAY_LABELS[row.day_of_week]} closed`}
+                      className="h-4 w-4 accent-brand-brown"
+                    />
+                  </label>
+                </div>
 
+                <div className="mt-4 space-y-4 sm:mt-3 sm:grid sm:grid-cols-[4.5rem_1fr_1fr_3rem] sm:items-center sm:gap-x-4">
+                  <span className="hidden text-sm font-semibold text-brand-ink sm:block">
+                    {DAY_LABELS[row.day_of_week].slice(0, 3)}
+                  </span>
+
+                  <div className="min-w-0">
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+                      Open
+                    </label>
                     <input
                       type="time"
                       value={toTimeInputValue(row.open_time)}
@@ -129,7 +149,12 @@ export function BusinessHoursSettings() {
                       }
                       className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink disabled:cursor-not-allowed disabled:bg-brand-cream/60 disabled:text-brand-subtle"
                     />
+                  </div>
 
+                  <div className="min-w-0 sm:pl-2">
+                    <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-brand-subtle">
+                      Close
+                    </label>
                     <input
                       type="time"
                       value={toTimeInputValue(row.close_time)}
@@ -141,24 +166,24 @@ export function BusinessHoursSettings() {
                       }
                       className="w-full min-w-0 rounded-lg border border-brand-brown/20 bg-white px-2 py-1.5 text-sm text-brand-ink disabled:cursor-not-allowed disabled:bg-brand-cream/60 disabled:text-brand-subtle"
                     />
-
-                    <div className="flex justify-center">
-                      <input
-                        type="checkbox"
-                        checked={row.is_closed}
-                        onChange={(e) =>
-                          updateDay(row.day_of_week, {
-                            is_closed: e.target.checked,
-                          })
-                        }
-                        aria-label={`${DAY_LABELS[row.day_of_week]} closed`}
-                        className="h-4 w-4 accent-brand-brown"
-                      />
-                    </div>
                   </div>
-                ))}
+
+                  <div className="hidden justify-center sm:flex">
+                    <input
+                      type="checkbox"
+                      checked={row.is_closed}
+                      onChange={(e) =>
+                        updateDay(row.day_of_week, {
+                          is_closed: e.target.checked,
+                        })
+                      }
+                      aria-label={`${DAY_LABELS[row.day_of_week]} closed`}
+                      className="h-4 w-4 accent-brand-brown"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
 
           <Button onClick={save} disabled={saving} className="mt-4 px-6 py-2 text-sm">
