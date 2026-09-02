@@ -10,7 +10,6 @@ import {
 } from "@/lib/admin-auth-storage";
 import { Button } from "@/components/ui/Button";
 import { ContentCard } from "@/components/ui/ContentCard";
-import { BackLink } from "@/components/ui/BackLink";
 import { ClientPageShell } from "@/components/ui/ClientPageShell";
 
 export function AdminLoginForm() {
@@ -53,7 +52,6 @@ export function AdminLoginForm() {
 
   return (
     <ClientPageShell>
-      <BackLink href="/" label="Home" />
       <ContentCard padding="lg" className="mx-auto w-full max-w-sm">
         <p className="label-kicker mb-2 text-center">Staff access</p>
         <h1 className="text-center font-serif text-2xl italic text-brand-ink">
