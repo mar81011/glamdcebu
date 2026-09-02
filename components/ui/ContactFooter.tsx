@@ -1,6 +1,4 @@
-import { getShopBranding } from "@/lib/branding/get-branding";
 import { getShopContact } from "@/lib/contact/get-contact";
-import { BrandTitle } from "@/components/ui/BrandTitle";
 
 function PhoneIcon() {
   return (
@@ -57,61 +55,46 @@ function FacebookIcon() {
   );
 }
 
-interface ContactRowProps {
+function ContactRow({
+  href,
+  icon,
+  label,
+  value,
+  external,
+}: {
   href: string;
   icon: React.ReactNode;
   label: string;
   value: string;
   external?: boolean;
-}
-
-function ContactRow({ href, icon, label, value, external }: ContactRowProps) {
+}) {
   return (
     <a
       href={href}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
-      className="group flex items-center gap-3 rounded-2xl border border-white/40 bg-brand-cream px-4 py-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+      className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-brand-ink transition hover:bg-brand-cream"
     >
-      <span className="brand-gradient-bg flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-brown text-white">
         {icon}
       </span>
       <span className="min-w-0 text-left">
-        <span className="block text-[10px] font-bold tracking-[0.16em] text-brand-subtle uppercase">
+        <span className="block text-[11px] font-medium text-brand-subtle">
           {label}
         </span>
-        <span className="block truncate text-sm font-semibold text-brand-ink">
-          {value}
-        </span>
+        <span className="block truncate text-sm font-semibold">{value}</span>
       </span>
     </a>
   );
 }
 
 export async function ContactFooter() {
-  const branding = await getShopBranding();
   const contact = await getShopContact();
 
   return (
-    <footer
-      id="contact"
-      className="brand-gradient-bg mt-10 rounded-3xl px-5 pt-10 pb-9 shadow-[0_8px_30px_rgba(107,76,59,0.2)]"
-    >
-      <div className="mx-auto mb-6 h-0.5 max-w-[160px] rounded-full bg-brand-cream/50" />
-
-      <div className="text-center">
-        <BrandTitle title={branding.siteTitle} size="md" light />
-        <div className="mx-auto mt-2 flex items-center justify-center gap-2">
-          <span className="h-px w-8 bg-brand-cream/60" />
-          <span className="text-[10px] text-brand-cream">◆</span>
-          <span className="h-px w-8 bg-brand-cream/60" />
-        </div>
-        <p className="mt-2 text-[11px] font-semibold tracking-[0.25em] text-brand-cream uppercase">
-          Cebu · Beauty &amp; Nails
-        </p>
-      </div>
-
-      <div className="mx-auto mt-6 grid max-w-3xl gap-2.5 md:grid-cols-2">
+    <footer id="contact" className="brand-gradient-bg mt-10 rounded-3xl px-5 py-7">
+      <h2 className="text-center font-serif text-xl text-white">Contact</h2>
+      <div className="mx-auto mt-5 grid max-w-3xl gap-2.5 md:grid-cols-2">
         <ContactRow
           href={`tel:${contact.phone}`}
           icon={<PhoneIcon />}
@@ -140,10 +123,6 @@ export async function ContactFooter() {
           external
         />
       </div>
-
-      <p className="mt-7 text-center text-[10px] tracking-wide text-brand-cream/80">
-        © {new Date().getFullYear()} {branding.siteTitle} · All rights reserved
-      </p>
     </footer>
   );
 }

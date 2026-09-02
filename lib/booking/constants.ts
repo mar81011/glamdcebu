@@ -1,6 +1,20 @@
 export type VisitType = "walk_in" | "home_service";
 
-export const APPOINTMENT_DURATION_MINUTES = 60;
+/** Each visit (lashes, nails, and add-ons together) is one 2.5-hour block. */
+export const APPOINTMENT_DURATION_MINUTES = 150;
+
+/** Start times every half hour so the next client can book as soon as a visit ends. */
+export const SLOT_START_INTERVAL_MINUTES = 30;
+
+export function formatDurationLabel(
+  minutes = APPOINTMENT_DURATION_MINUTES,
+): string {
+  const hours = minutes / 60;
+  if (Number.isInteger(hours)) {
+    return hours === 1 ? "1 hour" : `${hours} hours`;
+  }
+  return `${parseFloat(hours.toFixed(1))} hours`;
+}
 
 export const VISIT_TYPE_OPTIONS: Array<{
   value: VisitType;
@@ -26,7 +40,10 @@ export function visitTypeLabel(type: VisitType | string): string {
   );
 }
 
-export function formatAppointmentEnd(start: Date, durationMinutes = APPOINTMENT_DURATION_MINUTES): Date {
+export function formatAppointmentEnd(
+  start: Date,
+  durationMinutes = APPOINTMENT_DURATION_MINUTES,
+): Date {
   return new Date(start.getTime() + durationMinutes * 60_000);
 }
 

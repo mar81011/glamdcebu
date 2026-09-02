@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MonthCalendar } from "@/components/calendar/MonthCalendar";
 import { ProductCatalog } from "@/components/admin/ProductCatalog";
+import { AccountSettings } from "@/components/admin/AccountSettings";
 import { AppointmentReminderSettings } from "@/components/admin/AppointmentReminderSettings";
 import { BrandSettings } from "@/components/admin/BrandSettings";
 import { ContactSettings } from "@/components/admin/ContactSettings";
@@ -12,6 +13,7 @@ import { AdminPushSettings } from "@/components/admin/AdminPushSettings";
 import { BusinessHoursSettings } from "@/components/admin/BusinessHoursSettings";
 import { AppointmentSchedule } from "@/components/admin/AppointmentSchedule";
 import { HomeServiceSettings } from "@/components/admin/HomeServiceSettings";
+import { WorkPhotosSettings } from "@/components/admin/WorkPhotosSettings";
 import { visitTypeLabel, type VisitType } from "@/lib/booking/constants";
 import { toDateKey } from "@/lib/calendar-utils";
 
@@ -123,9 +125,11 @@ export function CalendarView() {
 
       {tab === "settings" && (
         <div className="space-y-4">
-          <BrandSettings />
-          <ContactSettings />
           <AdminPushSettings />
+          <AccountSettings />
+          <BrandSettings />
+          <WorkPhotosSettings />
+          <ContactSettings />
           <AppointmentReminderSettings />
           <BusinessHoursSettings />
           <HomeServiceSettings />

@@ -15,11 +15,21 @@ export async function POST(request: Request) {
       time,
       mainServiceId,
       addonIds = [],
+      serviceIds: rawServiceIds,
       visitType = "walk_in",
       homeAddress,
     } = body;
 
-    if (!customerName?.trim() || !phone?.trim() || !date || !time || !mainServiceId) {
+    const serviceIds = Array.from(
+      new Set(
+        (Array.isArray(rawServiceIds) && rawServiceIds.length > 0
+          ? rawServiceIds
+          : [mainServiceId, ...addonIds]
+        ).filter((id: unknown) => typeof id === "string" && id.length > 0),
+      ),
+    );
+
+    if (!customerName?.trim() || !phone?.trim() || !date || !time || serviceIds.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -41,8 +51,6 @@ export async function POST(request: Request) {
 
     const homeServiceFee =
       visitType === "home_service" ? (settings?.home_service_fee ?? 0) : 0;
-
-    const serviceIds = [mainServiceId, ...addonIds];
 
     const { data: services, error: svcError } = await supabase
       .from("services")

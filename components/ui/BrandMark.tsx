@@ -7,11 +7,12 @@ import { BrandTitle } from "@/components/ui/BrandTitle";
 interface BrandMarkProps {
   branding: ShopBranding;
   href?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "nav" | "sm" | "md" | "lg";
   showTagline?: boolean;
 }
 
 const sizeMap = {
+  nav: "nav" as const,
   sm: "sm" as const,
   md: "md" as const,
   lg: "lg" as const,
@@ -28,14 +29,14 @@ export function BrandMark({
       title={branding.siteTitle}
       size={sizeMap[size]}
       showTagline={showTagline}
-      className="items-start"
+      className="items-center"
     />
   );
 
   if (!href) return inner;
 
   return (
-    <Link href={href} className="transition hover:opacity-90">
+    <Link href={href} className="transition hover:opacity-80">
       {inner}
     </Link>
   );

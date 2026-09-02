@@ -14,9 +14,9 @@ interface ButtonProps {
 const variants = {
   primary: "btn-gradient text-white",
   secondary:
-    "bg-brand-cream text-brand-ink border border-brand-brown/25 shadow-md hover:bg-white",
+    "bg-brand-cream/80 text-brand-ink border border-brand-brown/20 shadow-sm hover:bg-white hover:-translate-y-px",
   outline:
-    "border-2 border-brand-brown bg-brand-cream text-brand-ink hover:bg-white shadow-sm",
+    "border border-brand-brown/35 bg-transparent text-brand-ink hover:bg-white hover:border-brand-brown hover:-translate-y-px shadow-sm",
 };
 
 export function Button({
@@ -28,7 +28,7 @@ export function Button({
   type = "button",
   disabled = false,
 }: ButtonProps) {
-  const classes = `inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all ${variants[variant]} ${disabled ? "pointer-events-none opacity-50" : ""} ${className}`;
+  const classes = `inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold tracking-wide transition-all duration-200 ${variants[variant]} ${disabled ? "pointer-events-none opacity-50" : ""} ${className}`;
 
   if (href) {
     return (

@@ -1,9 +1,9 @@
 {
-  "id": "/",
+  "id": "/admin",
   "name": "GLAM'D Cebu",
   "short_name": "GLAM'D",
-  "description": "Book lashes, brows, and nail appointments at GLAM'D Cebu",
-  "start_url": "/",
+  "description": "Admin calendar and booking alerts for GLAM'D Cebu",
+  "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f5f0e8",

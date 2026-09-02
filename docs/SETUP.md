@@ -2,7 +2,7 @@
 
 ## Live demo
 
-**Production:** https://glamdcebu.vercel.app
+**Production:** https://glamdcebu-six.vercel.app
 
 ## Local development
 
@@ -21,7 +21,7 @@ Works on **both** local and production (same Supabase project).
 
 | | Local | Production |
 |---|-------|------------|
-| **URL** | http://localhost:3000/admin/login | https://glamdcebu.vercel.app/admin/login |
+| **URL** | http://localhost:3000/admin/login | https://glamdcebu-six.vercel.app/admin/login |
 
 ### Accounts
 
@@ -45,8 +45,9 @@ npm run test:e2e
 
 Set in Vercel project `glamdcebu`:
 
-- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_URL` = `https://cosejgazsghhvgdxwlfo.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Features
 

@@ -11,25 +11,31 @@ import {
   type Service,
   type ServiceCategory,
 } from "@/lib/services-data";
+import { orderMenuCategories } from "@/lib/services/catalog";
 import {
   APPOINTMENT_DURATION_MINUTES,
+  formatDurationLabel,
   VISIT_TYPE_OPTIONS,
   visitTypeLabel,
   type VisitType,
 } from "@/lib/booking/constants";
+import { slotEndLabel } from "@/lib/booking/slots";
 
-const STEPS = ["Service", "Add-ons", "Date & Time", "Your Info", "Review"];
+const STEPS = ["Services", "Date & Time", "Your Info", "Review"];
 
-export function BookingForm() {
+export function BookingForm({
+  initialCategories = [],
+}: {
+  initialCategories?: ServiceCategory[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preCategory = searchParams.get("category") ?? "";
   const preService = searchParams.get("service") ?? "";
 
   const [step, setStep] = useState(0);
-  const [categorySlug, setCategorySlug] = useState(preCategory);
-  const [mainServiceId, setMainServiceId] = useState(preService);
-  const [addonIds, setAddonIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(
+    preService ? [preService] : [],
+  );
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
@@ -39,25 +45,33 @@ export function BookingForm() {
   const [homeAddress, setHomeAddress] = useState("");
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [durationMinutes, setDurationMinutes] = useState(
+    APPOINTMENT_DURATION_MINUTES,
+  );
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [homeServiceFee, setHomeServiceFee] = useState(0);
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [categories, setCategories] = useState<ServiceCategory[]>(initialCategories);
+  const [catalogLoading, setCatalogLoading] = useState(initialCategories.length === 0);
+  const [catalogError, setCatalogError] = useState("");
 
-  const category = categories.find((c) => c.slug === categorySlug);
-  const mainService = category?.mainServices.find((s) => s.id === mainServiceId);
-  const selectedAddons =
-    category?.addons.filter((a) => addonIds.includes(a.id)) ?? [];
+  const orderedCategories = orderMenuCategories(categories);
+  const allServices = orderedCategories.flatMap((c) => [...c.mainServices, ...c.addons]);
+  const selectedServices = allServices.filter((s) => selectedIds.includes(s.id));
+  const selectedMains = categories.flatMap((c) =>
+    c.mainServices.filter((s) => selectedIds.includes(s.id)),
+  );
+  const selectedAddons = categories.flatMap((c) =>
+    c.addons.filter((s) => selectedIds.includes(s.id)),
+  );
 
   const total =
-    (mainService?.price ?? 0) +
-    selectedAddons.reduce((sum, a) => sum + a.price, 0) +
+    selectedServices.reduce((sum, s) => sum + s.price, 0) +
     (visitType === "home_service" ? homeServiceFee : 0);
 
-  function toggleAddon(id: string) {
-    setAddonIds((prev) =>
+  function toggleService(id: string) {
+    setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
@@ -65,12 +79,10 @@ export function BookingForm() {
   function canNext(): boolean {
     switch (step) {
       case 0:
-        return !!categorySlug && !!mainServiceId;
+        return selectedMains.length > 0;
       case 1:
-        return true;
-      case 2:
         return !!date && !!time;
-      case 3:
+      case 2:
         return (
           name.trim().length > 0 &&
           phone.trim().length >= 10 &&
@@ -93,8 +105,7 @@ export function BookingForm() {
         notes,
         date,
         time,
-        mainServiceId,
-        addonIds,
+        serviceIds: selectedIds,
         visitType,
         homeAddress: visitType === "home_service" ? homeAddress : undefined,
       }),
@@ -109,11 +120,30 @@ export function BookingForm() {
   }
 
   useEffect(() => {
-    fetch("/api/services")
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+
+    fetch("/api/services", { signal: controller.signal })
       .then((res) => res.json())
-      .then((data) => setCategories(data.categories ?? []))
-      .finally(() => setCatalogLoading(false));
-  }, []);
+      .then((data) => {
+        setCategories(data.categories ?? []);
+        setCatalogError("");
+      })
+      .catch(() => {
+        if (initialCategories.length === 0) {
+          setCatalogError("Could not load services. Refresh the page and try again.");
+        }
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        setCatalogLoading(false);
+      });
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [initialCategories.length]);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -132,128 +162,106 @@ export function BookingForm() {
       .then((res) => res.json())
       .then((data) => {
         setAvailableSlots(data.slots ?? []);
+        if (typeof data.durationMinutes === "number") {
+          setDurationMinutes(data.durationMinutes);
+        }
         if (time && !data.slots?.includes(time)) setTime("");
       })
+      .catch(() => setAvailableSlots([]))
       .finally(() => setLoadingSlots(false));
   }, [date, time]);
 
   return (
     <ContentCard>
-      <h1 className="mb-1 text-center font-serif text-2xl text-brand-ink md:text-3xl">
+      <p className="label-kicker mb-2 text-center">Reserve your slot</p>
+      <h1 className="mb-1 text-center font-serif text-2xl italic text-brand-ink md:text-3xl">
         Book Appointment
       </h1>
-      <p className="mb-6 text-center text-sm font-medium text-brand-muted">
+      <p className="mb-6 text-center text-sm text-brand-muted">
         Step {step + 1} of {STEPS.length} — {STEPS[step]}
       </p>
 
-      <div className="mb-6 flex gap-1">
-        {STEPS.map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded-full ${i <= step ? "btn-gradient-flat" : "bg-brand-beige"}`}
-          />
-        ))}
+      <div className="mb-7">
+        <div className="flex gap-1.5">
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 flex-1 rounded-full transition-all ${i <= step ? "btn-gradient-flat" : "bg-brand-beige"}`}
+            />
+          ))}
+        </div>
+        <div className="mt-2 hidden grid-cols-4 gap-1.5 md:grid">
+          {STEPS.map((label, i) => (
+            <p
+              key={label}
+              className={`text-center text-[10px] font-medium tracking-wide ${
+                i === step ? "text-brand-ink" : "text-brand-subtle"
+              }`}
+            >
+              {label}
+            </p>
+          ))}
+        </div>
       </div>
 
       {step === 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {catalogLoading ? (
-            <p className="text-sm text-brand-muted">Loading services…</p>
+            <p className="text-center text-sm text-brand-muted">Loading services…</p>
+          ) : catalogError ? (
+            <p className="text-center text-sm text-red-700">{catalogError}</p>
           ) : (
-          <>
-          <label className="block text-sm font-semibold text-brand-ink">
-            Category
-          </label>
-          <div className="grid gap-2 md:grid-cols-2">
-            {categories.map((cat) => (
-              <button
-                key={cat.slug}
-                type="button"
-                onClick={() => {
-                  setCategorySlug(cat.slug);
-                  setMainServiceId("");
-                  setAddonIds([]);
-                }}
-                className={`rounded-xl border-2 bg-white px-4 py-3 text-left text-sm transition ${
-                  categorySlug === cat.slug
-                    ? "border-brand-brown bg-brand-beige"
-                    : "border-brand-brown/20 hover:border-brand-brown/40"
-                }`}
-              >
-                <span className="font-semibold text-brand-ink">{cat.brand}</span>
-                <span className="text-brand-muted"> — {cat.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {category && (
             <>
-              <label className="mt-4 block text-sm font-semibold text-brand-ink">
-                Main service
-              </label>
-              <div className="grid gap-2 md:grid-cols-2">
-                {category.mainServices.map((s) => (
-                  <ServiceOption
-                    key={s.id}
-                    service={s}
-                    selected={mainServiceId === s.id}
-                    onSelect={() => setMainServiceId(s.id)}
-                  />
-                ))}
-              </div>
+              <p className="text-center text-sm text-brand-muted">
+                Pick lashes, nails, and add-ons together — one visit, one booking.
+              </p>
+              {orderedCategories.map((cat, index) => (
+                <section
+                  key={cat.slug}
+                  className={index > 0 ? "border-t border-brand-brown/10 pt-6" : ""}
+                >
+                  <h2 className="text-center font-serif text-xl text-brand-ink">
+                    {cat.name}
+                  </h2>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {cat.mainServices.map((s) => (
+                      <ServiceOption
+                        key={s.id}
+                        service={s}
+                        selected={selectedIds.includes(s.id)}
+                        onSelect={() => toggleService(s.id)}
+                      />
+                    ))}
+                  </div>
+                  {cat.addons.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="mb-2 text-center text-[11px] font-semibold tracking-wide text-brand-subtle uppercase">
+                        Add-ons
+                      </h3>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {cat.addons.map((addon) => (
+                          <ServiceOption
+                            key={addon.id}
+                            service={addon}
+                            selected={selectedIds.includes(addon.id)}
+                            onSelect={() => toggleService(addon.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              ))}
             </>
           )}
-          </>
-          )}
         </div>
       )}
 
-      {step === 1 && category && (
-        <div className="space-y-3">
-          <p className="text-sm text-brand-muted">
-            Optional add-ons for your service
-          </p>
-          {category.addons.length === 0 ? (
-            <p className="text-sm text-brand-subtle">No add-ons available.</p>
-          ) : (
-            <div className="grid gap-2 md:grid-cols-2 md:items-start">
-              {category.addons.map((addon) => (
-                <label
-                  key={addon.id}
-                  className={`flex cursor-pointer items-center justify-between rounded-xl border-2 bg-white px-4 py-3 transition ${
-                    addonIds.includes(addon.id)
-                      ? "border-brand-brown bg-brand-beige"
-                      : "border-brand-brown/20"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={addonIds.includes(addon.id)}
-                      onChange={() => toggleAddon(addon.id)}
-                      className="accent-brand-brown"
-                    />
-                    <span className="text-sm font-medium text-brand-ink">
-                      {addon.name}
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-brand-brown">
-                    {formatPrice(addon.price)}
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === 2 && (
+      {step === 1 && (
         <div className="space-y-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
           <div className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-brand-ink">
-                Pick a date
-              </label>
+              <label className="label-kicker mb-2 block">Pick a date</label>
               <MonthCalendar
                 viewDate={calendarMonth}
                 onViewDateChange={setCalendarMonth}
@@ -277,47 +285,56 @@ export function BookingForm() {
             )}
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-brand-ink">
-              Time <span className="font-normal text-brand-muted">(1 hour each)</span>
+            <label className="label-kicker mb-2 block">
+              Time{" "}
+              <span className="font-normal normal-case tracking-normal text-brand-muted">
+                ({formatDurationLabel(durationMinutes)} each)
+              </span>
             </label>
             {loadingSlots ? (
               <p className="text-sm text-brand-muted">Loading available times…</p>
             ) : availableSlots.length === 0 && date ? (
               <p className="text-sm text-brand-muted">No slots available this day.</p>
             ) : (
-            <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-3">
-              {availableSlots.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setTime(slot)}
-                  className={`rounded-lg border px-2 py-2.5 text-xs font-medium transition ${
-                    time === slot
-                      ? "btn-gradient border-transparent text-white"
-                      : "border-brand-brown/25 bg-brand-cream text-brand-ink hover:border-brand-brown/50 hover:bg-white"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setTime(slot)}
+                    className={`rounded-2xl border px-2 py-2.5 text-xs font-medium transition ${
+                      time === slot
+                        ? "btn-gradient border-transparent text-white"
+                        : "border-brand-brown/20 bg-brand-cream/80 text-brand-ink hover:border-brand-brown/45 hover:bg-white"
+                    }`}
+                  >
+                    <span className="block">{slot}</span>
+                    <span
+                      className={`mt-0.5 block text-[10px] font-normal ${
+                        time === slot ? "text-white/80" : "text-brand-muted"
+                      }`}
+                    >
+                      until {slotEndLabel(slot, durationMinutes)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
             {time && (
               <p className="mt-2 text-xs text-brand-muted">
-                Your appointment runs for 1 hour from the selected start time.
+                Your visit is {formatDurationLabel(durationMinutes)} from{" "}
+                {time} to {slotEndLabel(time, durationMinutes)}.
               </p>
             )}
           </div>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-brand-ink">
-              Visit type
-            </label>
-            <div className="grid gap-2 md:grid-cols-2">
+            <label className="label-kicker mb-2 block">Visit type</label>
+            <div className="grid gap-2.5 md:grid-cols-2">
               {VISIT_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -326,10 +343,8 @@ export function BookingForm() {
                     setVisitType(option.value);
                     if (option.value === "walk_in") setHomeAddress("");
                   }}
-                  className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 bg-white px-4 py-3 text-left transition ${
-                    visitType === option.value
-                      ? "border-brand-brown bg-brand-beige"
-                      : "border-brand-brown/20 hover:border-brand-brown/40"
+                  className={`choice-card flex w-full items-center justify-between gap-3 ${
+                    visitType === option.value ? "is-selected" : ""
                   }`}
                 >
                   <div className="min-w-0">
@@ -353,7 +368,7 @@ export function BookingForm() {
           </div>
 
           {visitType === "home_service" && homeServiceFee > 0 && (
-            <div className="rounded-xl border border-brand-brown/20 bg-brand-cream/70 px-4 py-3">
+            <div className="rounded-2xl border border-brand-brown/15 bg-brand-cream/80 px-4 py-3">
               <p className="text-sm font-semibold text-brand-ink">
                 Home service fee: {formatPrice(homeServiceFee)}
               </p>
@@ -365,63 +380,60 @@ export function BookingForm() {
 
           {visitType === "home_service" && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-brand-ink">
-                Home address
-              </label>
+              <label className="label-kicker mb-2 block">Home address</label>
               <textarea
                 value={homeAddress}
                 onChange={(e) => setHomeAddress(e.target.value)}
                 placeholder="Street, barangay, landmark..."
                 rows={3}
-                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink placeholder:text-brand-subtle focus:border-brand-brown focus:outline-none"
+                className="field"
               />
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-brand-ink">
-                Full name
-              </label>
+              <label className="label-kicker mb-2 block">Full name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
-                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink placeholder:text-brand-subtle focus:border-brand-brown focus:outline-none"
+                className="field"
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-brand-ink">
-                Phone number
-              </label>
+              <label className="label-kicker mb-2 block">Phone number</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="09XX XXX XXXX"
-                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink placeholder:text-brand-subtle focus:border-brand-brown focus:outline-none"
+                className="field"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-brand-ink">
-                Notes (optional)
-              </label>
+              <label className="label-kicker mb-2 block">Notes (optional)</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any requests or preferences..."
                 rows={3}
-                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink placeholder:text-brand-subtle focus:border-brand-brown focus:outline-none"
+                className="field"
               />
             </div>
           </div>
         </div>
       )}
 
-      {step === 4 && (
-        <div className="space-y-3 text-sm text-brand-ink md:max-w-xl md:mx-auto">
-          <ReviewRow label="Service" value={mainService?.name ?? "—"} />
+      {step === 3 && (
+        <div className="space-y-3 text-sm text-brand-ink md:mx-auto md:max-w-xl">
+          <ReviewRow
+            label="Services"
+            value={
+              selectedMains.map((s) => s.name).join(", ") || "—"
+            }
+          />
           {selectedAddons.length > 0 && (
             <ReviewRow
               label="Add-ons"
@@ -429,7 +441,14 @@ export function BookingForm() {
             />
           )}
           <ReviewRow label="Date" value={date || "—"} />
-          <ReviewRow label="Time" value={time ? `${time} (1 hour)` : "—"} />
+          <ReviewRow
+            label="Time"
+            value={
+              time
+                ? `${time} – ${slotEndLabel(time, durationMinutes)} (${formatDurationLabel(durationMinutes)})`
+                : "—"
+            }
+          />
           <ReviewRow
             label="Visit"
             value={
@@ -520,10 +539,8 @@ function ServiceOption({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center justify-between rounded-xl border-2 bg-white px-4 py-3 text-left transition ${
-        selected
-          ? "border-brand-brown bg-brand-beige"
-          : "border-brand-brown/20 hover:border-brand-brown/40"
+      className={`choice-card flex w-full items-center justify-between ${
+        selected ? "is-selected" : ""
       }`}
     >
       <span className="text-sm font-medium text-brand-ink">{service.name}</span>
@@ -536,7 +553,7 @@ function ServiceOption({
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4">
+    <div className="flex justify-between gap-4 border-b border-brand-brown/8 pb-2">
       <span className="text-brand-muted">{label}</span>
       <span className="text-right font-semibold text-brand-ink">{value}</span>
     </div>

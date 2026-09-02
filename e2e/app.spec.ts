@@ -1,49 +1,49 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("GLAM'D Cebu — public flows", () => {
-  test("home page loads with services and CTAs", async ({ page }) => {
+  test("home page shows the full menu and booking CTA", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Beauty & Nails/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Book Now/i }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /View Schedule/i }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /Lashes & Brows/i }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /^Nails$/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Menu$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Lashes & Brows/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
+    await expect(page.getByText("Classic")).toBeVisible();
+    await expect(page.getByText("₱499")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Book an appointment/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Book Now$/i })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Staff login/i })).toHaveCount(0);
   });
 
   test("services price list — lashes & brows", async ({ page }) => {
     await page.goto("/services/lashes-brows");
-    await expect(page.getByText("Price List")).toBeVisible();
+    await expect(page).toHaveURL(/\/#lashes-brows/);
     await expect(page.getByText("Classic")).toBeVisible();
     await expect(page.getByText("₱499")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Book this service/i }).first()).toBeVisible();
   });
 
   test("services price list — nails", async ({ page }) => {
     await page.goto("/services/nails");
-    await expect(page.getByText("GLAM'D D")).toBeVisible();
+    await expect(page).toHaveURL(/\/#nails/);
     await expect(page.getByText("Nail gel plain")).toBeVisible();
   });
 
   test("booking flow — multi-step UI", async ({ page }) => {
     await page.goto("/book");
     await expect(page.getByText("Book Appointment")).toBeVisible();
-    await expect(page.getByText(/Step 1 of 5/)).toBeVisible();
+    await expect(page.getByText(/Step 1 of 4/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Lashes & Brows/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
 
-    await page.getByRole("button", { name: /GLAM'D.*Lashes/i }).click();
     await page.getByRole("button", { name: /Classic/i }).click();
     await page.getByRole("button", { name: /Continue/i }).click();
 
-    await expect(page.getByText(/Step 2 of 5/)).toBeVisible();
-    await page.getByRole("button", { name: /Continue/i }).click();
-
-    await expect(page.getByText(/Step 3 of 5/)).toBeVisible();
+    await expect(page.getByText(/Step 2 of 4/)).toBeVisible();
   });
 
-  test("service page deep-links into booking", async ({ page }) => {
-    await page.goto("/services/lashes-brows");
-    await page.getByRole("link", { name: /Book this service/i }).first().click();
-    await expect(page).toHaveURL(/\/book\?/);
-    await expect(page.getByText(/Step 1 of 5/)).toBeVisible();
+  test("menu books from the homepage CTA", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: /Book an appointment/i }).click();
+    await expect(page).toHaveURL(/\/book/);
+    await expect(page.getByText(/Step 1 of 4/)).toBeVisible();
   });
 
   test("admin route redirects unauthenticated users", async ({ page }) => {

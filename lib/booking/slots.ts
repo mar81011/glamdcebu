@@ -1,3 +1,8 @@
+import {
+  APPOINTMENT_DURATION_MINUTES,
+  SLOT_START_INTERVAL_MINUTES,
+} from "@/lib/booking/constants";
+
 export interface BusinessHourRow {
   day_of_week: number;
   open_time: string;
@@ -40,16 +45,28 @@ function minutesToSlotLabel(minutes: number): string {
   return `${hour12}:${String(mins).padStart(2, "0")} ${period}`;
 }
 
-function hourlySlotsForDay(
+function startSlotsForDay(
   openMin: number,
   closeMin: number,
   durationMinutes: number,
+  intervalMinutes: number,
 ): string[] {
   const slots: string[] = [];
-  for (let m = openMin; m + durationMinutes <= closeMin; m += 60) {
+  for (
+    let m = openMin;
+    m + durationMinutes <= closeMin;
+    m += intervalMinutes
+  ) {
     slots.push(minutesToSlotLabel(m));
   }
   return slots;
+}
+
+export function slotEndLabel(
+  slot: string,
+  durationMinutes = APPOINTMENT_DURATION_MINUTES,
+): string {
+  return minutesToSlotLabel(slotToMinutes(slot) + durationMinutes);
 }
 
 export function getAvailableSlots(
@@ -57,7 +74,8 @@ export function getAvailableSlots(
   businessHours: BusinessHourRow[],
   blocked: BlockedSlotRow[],
   existing: ExistingAppointment[],
-  durationMinutes = 60,
+  durationMinutes = APPOINTMENT_DURATION_MINUTES,
+  intervalMinutes = SLOT_START_INTERVAL_MINUTES,
 ): string[] {
   const date = new Date(dateKey + "T12:00:00");
   const dayOfWeek = date.getDay();
@@ -70,7 +88,12 @@ export function getAvailableSlots(
 
   const now = new Date();
 
-  const daySlots = hourlySlotsForDay(openMin, closeMin, durationMinutes);
+  const daySlots = startSlotsForDay(
+    openMin,
+    closeMin,
+    durationMinutes,
+    intervalMinutes,
+  );
 
   return daySlots.filter((slot) => {
     const slotMin = slotToMinutes(slot);

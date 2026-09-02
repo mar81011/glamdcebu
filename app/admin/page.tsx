@@ -13,7 +13,8 @@ export default function AdminPage() {
       </div>
 
       <ContentCard>
-        <h1 className="mb-1 font-serif text-2xl text-brand-ink">Admin Calendar</h1>
+        <p className="label-kicker mb-2">Studio</p>
+        <h1 className="mb-1 font-serif text-2xl italic text-brand-ink">Admin Calendar</h1>
         <p className="mb-6 text-sm text-brand-muted">
           Manage appointments and availability
         </p>

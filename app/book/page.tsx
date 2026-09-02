@@ -1,23 +1,24 @@
 import { Suspense } from "react";
 import { BackLink } from "@/components/ui/BackLink";
 import { BookingForm } from "@/components/booking/BookingForm";
-import { ContactFooter } from "@/components/ui/ContactFooter";
 import { PageShell } from "@/components/ui/PageShell";
+import { getServiceCatalog } from "@/lib/services/get-catalog";
 
-export default function BookPage() {
+export default async function BookPage() {
+  const categories = await getServiceCatalog();
+
   return (
     <PageShell>
       <BackLink />
       <Suspense
         fallback={
-          <div className="rounded-3xl border border-brand-brown/10 bg-white p-6 text-center text-brand-muted shadow-md">
+          <div className="surface-card rounded-[1.75rem] p-6 text-center text-brand-muted">
             Loading...
           </div>
         }
       >
-        <BookingForm />
+        <BookingForm initialCategories={categories} />
       </Suspense>
-      <ContactFooter />
     </PageShell>
   );
 }

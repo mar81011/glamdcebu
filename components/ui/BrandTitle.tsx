@@ -1,9 +1,10 @@
 import { DEFAULT_BRAND_TAGLINE } from "@/lib/branding/defaults";
 
 const sizeClasses = {
+  nav: { title: "text-[1.7rem] md:text-[1.85rem]", tagline: "text-[8px] tracking-[0.2em]" },
   sm: { title: "text-2xl", tagline: "text-[9px] tracking-[0.18em]" },
   md: { title: "text-3xl md:text-4xl", tagline: "text-[10px] tracking-[0.2em]" },
-  lg: { title: "text-4xl md:text-5xl", tagline: "text-[10px] tracking-[0.2em]" },
+  lg: { title: "text-4xl md:text-5xl", tagline: "text-[10px] tracking-[0.22em]" },
   xl: { title: "text-5xl md:text-6xl", tagline: "text-xs tracking-[0.22em]" },
 };
 
@@ -30,14 +31,12 @@ export function BrandTitle({
 
   return (
     <span className={`inline-flex flex-col items-center leading-none ${className}`}>
-      <span
-        className={`font-brand-script ${titleSize} ${titleColor} lowercase drop-shadow-sm`}
-      >
+      <span className={`font-brand-script ${titleSize} ${titleColor} lowercase`}>
         {title.trim()}
       </span>
       {showTagline && (
         <span
-          className={`mt-2 font-sans font-light uppercase ${taglineSize} ${taglineColor}`}
+          className={`mt-2 font-sans font-medium uppercase ${taglineSize} ${taglineColor}`}
         >
           {tagline}
         </span>

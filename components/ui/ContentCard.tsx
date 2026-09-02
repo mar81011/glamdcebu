@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ReactNode } from "react";
 
 interface ContentCardProps {
@@ -20,7 +19,7 @@ export function ContentCard({
 }: ContentCardProps) {
   return (
     <div
-      className={`rounded-3xl border border-brand-brown/10 bg-white shadow-[0_8px_30px_rgba(44,31,23,0.08)] ${paddingMap[padding]} ${className}`}
+      className={`surface-card rounded-[1.75rem] ${paddingMap[padding]} ${className}`}
     >
       {children}
     </div>

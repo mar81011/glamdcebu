@@ -12,6 +12,16 @@
   --brand-gradient: linear-gradient(180deg, #8b6550 0%, #6b4c3b 50%, #523a2c 100%);
   --background: var(--brand-cream);
   --foreground: var(--brand-ink);
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.75) inset,
+    0 18px 40px -18px rgba(44, 31, 23, 0.18),
+    0 4px 12px rgba(44, 31, 23, 0.04);
+  --shadow-lift:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 24px 48px -16px rgba(44, 31, 23, 0.22);
+  --shadow-btn:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 10px 22px -8px rgba(82, 58, 44, 0.55);
 }
 
 @theme inline {
@@ -29,41 +39,64 @@
   --font-serif: var(--font-playfair);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--brand-brown) 22%, transparent);
+  color: var(--brand-ink);
+}
+
 .font-serif {
   font-family: var(--font-playfair), Georgia, serif;
+  letter-spacing: -0.02em;
 }
 
 .font-brand-script {
   font-family: var(--font-brand-script), "Segoe Script", cursive;
 }
 
-/* Footer gradient — buttons reuse this exact same token */
+.page-atmosphere {
+  background: var(--brand-cream);
+}
+
+.surface-card {
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--brand-brown) 10%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
 .brand-gradient-bg {
   background: var(--brand-gradient);
 }
 
-/* Buttons: same gradient as footer, lighter top aligned for small pills */
 .btn-gradient {
   background: var(--brand-gradient);
   background-size: 100% 220%;
   background-position: center top;
   color: #fff;
-  box-shadow: none;
-  transition: filter 0.2s;
+  box-shadow: var(--shadow-btn);
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-gradient:hover {
-  filter: brightness(1.04);
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28) inset,
+    0 14px 28px -10px rgba(82, 58, 44, 0.6);
 }
 
 .btn-gradient:active {
   filter: brightness(0.97);
+  transform: translateY(0);
 }
 
 .btn-gradient-flat {
@@ -71,4 +104,77 @@ body {
   background-size: 100% 220%;
   background-position: center top;
   color: #fff;
+}
+
+.field {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--brand-brown) 18%, transparent);
+  background: color-mix(in srgb, var(--brand-cream) 58%, white);
+  padding: 0.8rem 1rem;
+  color: var(--brand-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.field::placeholder {
+  color: var(--brand-subtle);
+}
+
+.field:hover {
+  border-color: color-mix(in srgb, var(--brand-brown) 32%, transparent);
+}
+
+.field:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--brand-brown);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-brown) 14%, transparent);
+}
+
+.choice-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--brand-brown) 14%, transparent);
+  background: color-mix(in srgb, white 88%, var(--brand-cream));
+  padding: 0.9rem 1rem;
+  text-align: left;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.choice-card:hover {
+  border-color: color-mix(in srgb, var(--brand-brown) 34%, transparent);
+  transform: translateY(-1px);
+}
+
+.choice-card.is-selected {
+  border-color: var(--brand-brown);
+  background: color-mix(in srgb, var(--brand-beige) 72%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-brown) 12%, transparent);
+}
+
+.label-kicker {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-subtle);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -9,7 +9,8 @@ export default function CalendarPage() {
     <PageShell>
       <BackLink />
       <ContentCard>
-        <h1 className="font-serif text-2xl text-brand-ink">Schedule Overview</h1>
+        <p className="label-kicker mb-2">Availability</p>
+        <h1 className="font-serif text-2xl italic text-brand-ink">Schedule Overview</h1>
         <p className="mt-1 mb-6 text-sm text-brand-muted">
           See which days have bookings and find open slots.
         </p>

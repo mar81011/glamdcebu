@@ -9,6 +9,7 @@ import { getShopContact } from "@/lib/contact/get-contact";
 import { formatPrice } from "@/lib/services-data";
 import {
   APPOINTMENT_DURATION_MINUTES,
+  formatDurationLabel,
   formatTimeRange,
   visitTypeLabel,
 } from "@/lib/booking/constants";
@@ -41,12 +42,9 @@ export default async function ConfirmPage({ params }: Props) {
     services: { name: string } | { name: string }[] | null;
   }>;
 
-  const mainService = getJoinedServiceName(services[0]?.services ?? null) || "Service";
-  const addons = services
-    .slice(1)
-    .map((s) => getJoinedServiceName(s.services))
-    .filter(Boolean)
-    .join(", ");
+  const serviceNames =
+    services.map((s) => getJoinedServiceName(s.services)).filter(Boolean).join(", ") ||
+    "Service";
 
   const start = new Date(appointment.appointment_at);
   const duration =
@@ -79,8 +77,7 @@ export default async function ConfirmPage({ params }: Props) {
           <DiamondDivider />
 
           <div className="space-y-2.5 text-left text-sm">
-            <Row label="Service" value={mainService} />
-            {addons && <Row label="Add-ons" value={addons} />}
+            <Row label="Services" value={serviceNames} />
             <Row label="Visit" value={visitTypeLabel(appointment.visit_type)} />
             {appointment.visit_type === "home_service" && appointment.home_address && (
               <Row label="Address" value={appointment.home_address} />
@@ -92,7 +89,10 @@ export default async function ConfirmPage({ params }: Props) {
               />
             )}
             <Row label="Date" value={date} />
-            <Row label="Time" value={`${timeRange} (${duration} min)`} />
+            <Row
+              label="Time"
+              value={`${timeRange} (${formatDurationLabel(duration)})`}
+            />
             <Row label="Total" value={formatPrice(appointment.total_price)} highlight />
             <Row label="Status" value={appointment.status} />
           </div>

@@ -1,6 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+const PUBLIC_ADMIN_PREFIXES = [
+  "/admin/login",
+  "/admin/forgot-password",
+  "/admin/reset-password",
+];
+
+function isPublicAdminPath(pathname: string) {
+  return PUBLIC_ADMIN_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -29,7 +41,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login")) {
+  if (
+    request.nextUrl.pathname.startsWith("/admin") &&
+    !isPublicAdminPath(request.nextUrl.pathname)
+  ) {
     if (!user) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }

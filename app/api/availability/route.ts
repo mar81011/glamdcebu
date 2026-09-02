@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     blockedRes.data ?? [],
     (apptsRes.data ?? []).map((a) => ({
       appointment_at: a.appointment_at,
-      duration_minutes: a.duration_minutes,
+      duration_minutes: a.duration_minutes ?? APPOINTMENT_DURATION_MINUTES,
       status: a.status,
     })),
     APPOINTMENT_DURATION_MINUTES,

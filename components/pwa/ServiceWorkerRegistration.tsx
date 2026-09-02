@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** Registers the service worker so the app meets PWA install criteria. */
+/** Updates the service worker so an old fetch interceptor cannot block page loads. */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -10,7 +10,7 @@ export function ServiceWorkerRegistration() {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/", updateViaCache: "none" })
       .catch(() => {
-        // Non-fatal: install UI still shows manual steps on iOS.
+        // Non-fatal.
       });
   }, []);
 

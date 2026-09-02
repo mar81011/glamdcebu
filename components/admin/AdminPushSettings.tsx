@@ -165,9 +165,9 @@ export function AdminPushSettings() {
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
       <h3 className="font-serif text-brand-ink">Booking notifications</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Desktop push works in Chrome and Edge. You&apos;ll get an alert on this
-        device when a client books online. Android Chrome and installed iPhone
-        apps are supported too.
+        Enable alerts on this device for new bookings. Chrome and Edge on
+        desktop work as-is. On iPhone, add the admin page to your Home Screen
+        first, then open it and enable here.
       </p>
       {braveBrowser && (
         <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">

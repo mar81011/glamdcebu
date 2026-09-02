@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -54,7 +55,8 @@ export function AdminLoginForm() {
     <ClientPageShell>
       <BackLink href="/" label="Home" />
       <ContentCard padding="lg" className="mx-auto w-full max-w-sm">
-        <h1 className="text-center font-serif text-2xl text-brand-ink">
+        <p className="label-kicker mb-2 text-center">Staff access</p>
+        <h1 className="text-center font-serif text-2xl italic text-brand-ink">
           Admin Login
         </h1>
         <p className="mt-2 text-center text-sm text-brand-muted">
@@ -63,7 +65,7 @@ export function AdminLoginForm() {
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-brand-ink">
+            <label className="label-kicker mb-2 block">
               Email
             </label>
             <input
@@ -77,11 +79,11 @@ export function AdminLoginForm() {
               spellCheck={false}
               inputMode="email"
               required
-              className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 text-brand-ink focus:border-brand-brown focus:outline-none"
+              className="field"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-brand-ink">
+            <label className="label-kicker mb-2 block">
               Password
             </label>
             <div className="relative">
@@ -94,7 +96,7 @@ export function AdminLoginForm() {
                 autoCorrect="off"
                 spellCheck={false}
                 required
-                className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-3 pr-12 text-brand-ink focus:border-brand-brown focus:outline-none"
+                className="field pr-12"
               />
               <button
                 type="button"
@@ -124,6 +126,14 @@ export function AdminLoginForm() {
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Signing in…" : "Sign in"}
           </Button>
+          <p className="text-center">
+            <Link
+              href="/admin/forgot-password"
+              className="text-sm font-medium text-brand-brown hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
         </form>
       </ContentCard>
     </ClientPageShell>
