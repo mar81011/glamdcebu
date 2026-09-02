@@ -2,30 +2,40 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { DEFAULT_CONTACT } from "@/lib/contact/defaults";
+import {
+  DEFAULT_CONTACT,
+  formatPhoneDisplay,
+  mapsUrlFromAddress,
+} from "@/lib/contact/defaults";
 
 type ContactForm = {
   phone: string;
+  address: string;
+  instagram: string;
+  facebookName: string;
+  facebookLink: string;
+};
+
+function toForm(contact: {
+  phone: string;
   phoneDisplay: string;
   address: string;
-  mapsUrl: string;
   instagramUrl: string;
   instagramLabel: string;
   facebookUrl: string;
   facebookLabel: string;
-};
+}): ContactForm {
+  return {
+    phone: contact.phoneDisplay || contact.phone,
+    address: contact.address,
+    instagram: contact.instagramLabel || contact.instagramUrl,
+    facebookName: contact.facebookLabel,
+    facebookLink: contact.facebookUrl,
+  };
+}
 
 export function ContactSettings() {
-  const [form, setForm] = useState<ContactForm>({
-    phone: DEFAULT_CONTACT.phone,
-    phoneDisplay: DEFAULT_CONTACT.phoneDisplay,
-    address: DEFAULT_CONTACT.address,
-    mapsUrl: DEFAULT_CONTACT.mapsUrl,
-    instagramUrl: DEFAULT_CONTACT.instagramUrl,
-    instagramLabel: DEFAULT_CONTACT.instagramLabel,
-    facebookUrl: DEFAULT_CONTACT.facebookUrl,
-    facebookLabel: DEFAULT_CONTACT.facebookLabel,
-  });
+  const [form, setForm] = useState<ContactForm>(toForm(DEFAULT_CONTACT));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -36,18 +46,7 @@ export function ContactSettings() {
       .then((res) => res.json())
       .then((data) => {
         if (data.contact) {
-          setForm({
-            phone: data.contact.phone ?? DEFAULT_CONTACT.phone,
-            phoneDisplay: data.contact.phoneDisplay ?? DEFAULT_CONTACT.phoneDisplay,
-            address: data.contact.address ?? DEFAULT_CONTACT.address,
-            mapsUrl: data.contact.mapsUrl ?? DEFAULT_CONTACT.mapsUrl,
-            instagramUrl: data.contact.instagramUrl ?? DEFAULT_CONTACT.instagramUrl,
-            instagramLabel:
-              data.contact.instagramLabel ?? DEFAULT_CONTACT.instagramLabel,
-            facebookUrl: data.contact.facebookUrl ?? DEFAULT_CONTACT.facebookUrl,
-            facebookLabel:
-              data.contact.facebookLabel ?? DEFAULT_CONTACT.facebookLabel,
-          });
+          setForm(toForm(data.contact));
         }
       })
       .finally(() => setLoading(false));
@@ -61,46 +60,55 @@ export function ContactSettings() {
     setSaving(true);
     setError("");
     setMessage("");
+
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    const payload = {
+      contact: {
+        phone: phoneDigits,
+        phoneDisplay: formatPhoneDisplay(phoneDigits || form.phone),
+        address: form.address.trim(),
+        mapsUrl: mapsUrlFromAddress(form.address),
+        instagramUrl: form.instagram.trim(),
+        instagramLabel: form.instagram.trim(),
+        facebookUrl: form.facebookLink.trim(),
+        facebookLabel: form.facebookName.trim(),
+      },
+    };
+
     const res = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contact: form }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     setSaving(false);
     if (!res.ok) {
-      setError(data.error ?? "Could not save");
+      setError(data.error ?? "Could not save. Check phone, links, and try again.");
       return;
     }
-    if (data.contact) setForm(data.contact);
-    setMessage("Contact details updated.");
+    if (data.contact) setForm(toForm(data.contact));
+    setMessage("Contact details updated. Changes appear on the homepage footer.");
   }
 
   return (
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
-      <h3 className="font-serif text-brand-ink">Contact details</h3>
+      <h3 className="font-serif text-brand-ink">Footer contact info</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Shown in the site footer and on the booking confirmation page.
+        Edit the phone, location, Instagram, and Facebook shown at the bottom of
+        the homepage.
       </p>
 
       {loading ? (
         <p className="mt-4 text-sm text-brand-muted">Loading…</p>
       ) : (
         <div className="mt-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Phone (for calling)"
-              value={form.phone}
-              onChange={(v) => updateField("phone", v)}
-              placeholder="09665518594"
-            />
-            <Field
-              label="Phone display"
-              value={form.phoneDisplay}
-              onChange={(v) => updateField("phoneDisplay", v)}
-              placeholder="0966 551 8594"
-            />
-          </div>
+          <Field
+            label="Phone"
+            value={form.phone}
+            onChange={(v) => updateField("phone", v)}
+            placeholder="0966 551 8594"
+            inputMode="tel"
+          />
 
           <Field
             label="Location"
@@ -110,44 +118,31 @@ export function ContactSettings() {
           />
 
           <Field
-            label="Google Maps link"
-            value={form.mapsUrl}
-            onChange={(v) => updateField("mapsUrl", v)}
-            placeholder="https://www.google.com/maps/..."
+            label="Instagram"
+            value={form.instagram}
+            onChange={(v) => updateField("instagram", v)}
+            placeholder="@glam.d21"
+            hint="Handle or full Instagram link"
           />
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Instagram link"
-              value={form.instagramUrl}
-              onChange={(v) => updateField("instagramUrl", v)}
-              placeholder="https://instagram.com/glam.d21"
-            />
-            <Field
-              label="Instagram label"
-              value={form.instagramLabel}
-              onChange={(v) => updateField("instagramLabel", v)}
-              placeholder="@glam.d21"
-            />
-          </div>
+          <Field
+            label="Facebook name"
+            value={form.facebookName}
+            onChange={(v) => updateField("facebookName", v)}
+            placeholder="Christine Dela Calzada"
+            hint="Name shown in the footer"
+          />
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Facebook link"
-              value={form.facebookUrl}
-              onChange={(v) => updateField("facebookUrl", v)}
-              placeholder="https://facebook.com/..."
-            />
-            <Field
-              label="Facebook label"
-              value={form.facebookLabel}
-              onChange={(v) => updateField("facebookLabel", v)}
-              placeholder="Christine Dela Calzada"
-            />
-          </div>
+          <Field
+            label="Facebook link"
+            value={form.facebookLink}
+            onChange={(v) => updateField("facebookLink", v)}
+            placeholder="https://facebook.com/your-page"
+            hint="Full Facebook page link"
+          />
 
           <Button onClick={save} disabled={saving} className="px-6 py-2 text-sm">
-            {saving ? "Saving…" : "Save contact details"}
+            {saving ? "Saving…" : "Save contact info"}
           </Button>
 
           {message && (
@@ -165,11 +160,15 @@ function Field({
   value,
   onChange,
   placeholder,
+  hint,
+  inputMode,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  hint?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   return (
     <div>
@@ -179,8 +178,10 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        inputMode={inputMode}
         className="w-full rounded-xl border-2 border-brand-brown/20 bg-white px-4 py-2.5 text-sm text-brand-ink focus:border-brand-brown focus:outline-none"
       />
+      {hint && <p className="mt-1 text-xs text-brand-subtle">{hint}</p>}
     </div>
   );
 }

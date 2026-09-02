@@ -3,7 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_BRANDING } from "@/lib/branding/defaults";
 import {
   formatPhoneDisplay,
+  instagramLabelFromInput,
   mapsUrlFromAddress,
+  normalizeFacebookUrl,
+  normalizeInstagramUrl,
   normalizePhoneDigits,
   type ShopContact,
 } from "@/lib/contact/defaults";
@@ -48,11 +51,17 @@ function parseContactInput(body: Record<string, unknown>): ShopContact | null {
     String(input.mapsUrl ?? "").trim() || mapsUrlFromAddress(address);
   if (!isHttpUrl(mapsUrl)) return null;
 
-  const instagramUrl = String(input.instagramUrl ?? "").trim();
-  const facebookUrl = String(input.facebookUrl ?? "").trim();
-  if (!isHttpUrl(instagramUrl) || !isHttpUrl(facebookUrl)) return null;
+  const instagramInput = String(input.instagramUrl ?? input.instagramLabel ?? "").trim();
+  const instagramUrl = normalizeInstagramUrl(instagramInput);
+  if (!instagramUrl) return null;
 
-  const instagramLabel = String(input.instagramLabel ?? "").trim();
+  const facebookUrlInput = String(input.facebookUrl ?? "").trim();
+  const facebookUrl = normalizeFacebookUrl(facebookUrlInput);
+  if (!facebookUrl) return null;
+
+  const instagramLabel =
+    String(input.instagramLabel ?? "").trim() ||
+    instagramLabelFromInput(instagramInput);
   const facebookLabel = String(input.facebookLabel ?? "").trim();
   if (!instagramLabel || !facebookLabel) return null;
   if (instagramLabel.length > 80 || facebookLabel.length > 80) return null;

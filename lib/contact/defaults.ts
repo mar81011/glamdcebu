@@ -40,3 +40,59 @@ export function formatPhoneDisplay(phone: string): string {
   }
   return phone.trim();
 }
+
+export function normalizeInstagramUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      if (!url.hostname.includes("instagram.com")) return null;
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  const handle = trimmed.replace(/^@/, "").replace(/\/$/, "");
+  if (!handle || !/^[a-zA-Z0-9._]+$/.test(handle)) return null;
+  return `https://instagram.com/${handle}`;
+}
+
+export function normalizeFacebookUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      if (!url.hostname.includes("facebook.com") && !url.hostname.includes("fb.com")) {
+        return null;
+      }
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  const path = trimmed.replace(/^@/, "").replace(/^\//, "").replace(/\/$/, "");
+  if (!path) return null;
+  return `https://facebook.com/${path}`;
+}
+
+export function instagramLabelFromInput(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("@")) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      const handle = url.pathname.replace(/\//g, "").trim();
+      return handle ? `@${handle}` : trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+  return `@${trimmed.replace(/^@/, "")}`;
+}

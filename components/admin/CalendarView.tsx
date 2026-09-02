@@ -151,12 +151,12 @@ export function CalendarView() {
 
       {tab === "settings" && (
         <div className="space-y-4">
+          <ContactSettings />
           <WorkPhotosSettings />
           <GcashSettings />
           <AdminPushSettings />
           <AccountSettings />
           <BrandSettings />
-          <ContactSettings />
           <AppointmentReminderSettings />
           <BusinessHoursSettings />
           <HomeServiceSettings />
