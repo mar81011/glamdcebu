@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { fromTimeInputValue, DAY_LABELS, type BusinessHour } from "@/lib/booking/business-hours";
+import {
+  closeIsAfterOpen,
+  fromTimeInputValue,
+  DAY_LABELS,
+  type BusinessHour,
+} from "@/lib/booking/business-hours";
 
 export async function GET() {
   const supabase = await createClient();
@@ -50,7 +55,7 @@ export async function PATCH(request: Request) {
     if (!row.is_closed) {
       const open = fromTimeInputValue(row.open_time.slice(0, 5));
       const close = fromTimeInputValue(row.close_time.slice(0, 5));
-      if (open >= close) {
+      if (!closeIsAfterOpen(open, close)) {
         return NextResponse.json(
           { error: `${DAY_LABELS[row.day_of_week]}: close must be after open` },
           { status: 400 },

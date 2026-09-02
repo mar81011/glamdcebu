@@ -11,19 +11,9 @@ import {
   visitTypeLabel,
 } from "@/lib/booking/constants";
 import { getJoinedServiceName } from "@/lib/supabase/service-join";
+import type { TrackedAppointment } from "@/lib/booking/tracked-appointment";
 
-export type TrackedAppointment = {
-  orderNumber: string;
-  status: string;
-  statusLabel: string;
-  statusHint: string;
-  customerName: string;
-  services: string;
-  date: string;
-  time: string;
-  visit: string;
-  total: number;
-};
+export type { TrackedAppointment } from "@/lib/booking/tracked-appointment";
 
 export async function getTrackedAppointment(
   rawOrder: string,

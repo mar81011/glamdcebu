@@ -2,6 +2,7 @@ import {
   APPOINTMENT_DURATION_MINUTES,
   SLOT_START_INTERVAL_MINUTES,
 } from "@/lib/booking/constants";
+import { closeTimeToMinutes, timeToMinutes } from "@/lib/booking/business-hours";
 
 export interface BusinessHourRow {
   day_of_week: number;
@@ -21,11 +22,6 @@ export interface ExistingAppointment {
   status?: string;
 }
 
-function parseTimeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
-
 function slotToMinutes(slot: string): number {
   const match = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!match) return 0;
@@ -38,8 +34,9 @@ function slotToMinutes(slot: string): number {
 }
 
 function minutesToSlotLabel(minutes: number): string {
-  const hours24 = Math.floor(minutes / 60);
-  const mins = minutes % 60;
+  const normalized = ((minutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const hours24 = Math.floor(normalized / 60);
+  const mins = normalized % 60;
   const period = hours24 >= 12 ? "PM" : "AM";
   const hour12 = hours24 % 12 || 12;
   return `${hour12}:${String(mins).padStart(2, "0")} ${period}`;
@@ -83,8 +80,8 @@ export function getAvailableSlots(
 
   if (!hours || hours.is_closed) return [];
 
-  const openMin = parseTimeToMinutes(hours.open_time);
-  const closeMin = parseTimeToMinutes(hours.close_time);
+  const openMin = timeToMinutes(hours.open_time);
+  const closeMin = closeTimeToMinutes(hours.close_time);
 
   const now = new Date();
 

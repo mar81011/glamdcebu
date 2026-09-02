@@ -17,10 +17,33 @@ export interface BusinessHour {
   is_closed: boolean;
 }
 
+/** Default close: midnight, so the last 2.5-hour slot is 9:30 PM–12:00 AM. */
+export const DEFAULT_CLOSE_TIME = "00:00:00";
+export const DEFAULT_OPEN_TIME = "09:00:00";
+
+export function timeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** 00:00 as a close time means end-of-day midnight (24:00), not opening midnight. */
+export function closeTimeToMinutes(closeTime: string): number {
+  const minutes = timeToMinutes(closeTime);
+  return minutes === 0 ? 24 * 60 : minutes;
+}
+
+export function closeIsAfterOpen(openTime: string, closeTime: string): boolean {
+  const open = timeToMinutes(openTime);
+  const close = timeToMinutes(closeTime);
+  if (close === 0) return open > 0;
+  return close > open;
+}
+
 /** Postgres time → HTML time input value (HH:mm) */
 export function toTimeInputValue(time: string): string {
   const [h, m] = time.split(":");
-  return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+  const hour = Number(h) % 24;
+  return `${String(Number.isFinite(hour) ? hour : 0).padStart(2, "0")}:${(m ?? "00").padStart(2, "0")}`;
 }
 
 /** HTML time input → Postgres time */

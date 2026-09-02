@@ -130,12 +130,29 @@ export async function POST(request: Request) {
 
     const { data: services, error: svcError } = await supabase
       .from("services")
-      .select("id, price, is_active")
+      .select("id, price, is_active, type, category_id")
       .in("id", serviceIds)
       .eq("is_active", true);
 
     if (svcError || !services?.length || services.length !== serviceIds.length) {
       return NextResponse.json({ error: "Invalid or unavailable services" }, { status: 400 });
+    }
+
+    const byCategory = new Map<string, { mains: number; addons: number }>();
+    for (const service of services) {
+      const bucket = byCategory.get(service.category_id) ?? { mains: 0, addons: 0 };
+      if (service.type === "addon") bucket.addons += 1;
+      else bucket.mains += 1;
+      byCategory.set(service.category_id, bucket);
+    }
+    if (
+      [...byCategory.values()].some((bucket) => bucket.addons > 0 && bucket.mains === 0) ||
+      ![...byCategory.values()].some((bucket) => bucket.mains > 0)
+    ) {
+      return NextResponse.json(
+        { error: "Choose a main lashes, brows, or nails service before add-ons." },
+        { status: 400 },
+      );
     }
 
     const total =

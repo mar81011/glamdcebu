@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/Button";
 import {
   DAY_LABELS,
   DAY_ORDER,
+  DEFAULT_CLOSE_TIME,
+  DEFAULT_OPEN_TIME,
   toTimeInputValue,
   type BusinessHour,
 } from "@/lib/booking/business-hours";
@@ -12,8 +14,8 @@ import {
 function defaultHours(): BusinessHour[] {
   return DAY_ORDER.map((day) => ({
     day_of_week: day,
-    open_time: "09:00:00",
-    close_time: "18:00:00",
+    open_time: DEFAULT_OPEN_TIME,
+    close_time: DEFAULT_CLOSE_TIME,
     is_closed: day === 0,
   }));
 }
@@ -34,8 +36,8 @@ export function BusinessHoursSettings() {
             (day) =>
               data.hours.find((h: BusinessHour) => h.day_of_week === day) ?? {
                 day_of_week: day,
-                open_time: "09:00:00",
-                close_time: "18:00:00",
+                open_time: DEFAULT_OPEN_TIME,
+                close_time: DEFAULT_CLOSE_TIME,
                 is_closed: day === 0,
               },
           );
@@ -84,7 +86,7 @@ export function BusinessHoursSettings() {
       <h3 className="font-serif text-brand-ink">Business Hours</h3>
       <p className="mt-1 text-sm text-brand-muted">
         Set open and close times per day. Clients only see bookable slots within
-        these hours.
+        these hours. Use 12:00 AM (00:00) to stay open until midnight.
       </p>
 
       {loading ? (

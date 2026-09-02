@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { ContactFooter } from "@/components/ui/ContactFooter";
 import { ContentCard } from "@/components/ui/ContentCard";
 import { DiamondDivider } from "@/components/ui/DiamondDivider";
 import { PageShell } from "@/components/ui/PageShell";
 import { PillBadge } from "@/components/ui/PillBadge";
 import { CopyOrderNumber } from "@/components/booking/CopyOrderNumber";
+import { TrackAppointmentForm } from "@/components/booking/TrackAppointmentForm";
 import { getShopContact } from "@/lib/contact/get-contact";
 import { formatPrice } from "@/lib/services-data";
 import {
@@ -121,11 +121,14 @@ export default async function ConfirmPage({ params }: Props) {
             <Row label="Status" value={guestStatusLabel(appointment.status)} />
           </div>
 
-          <div className="mt-8 space-y-3">
-            <Button href="/track" variant="outline" className="w-full">
-              Track my appointment
-            </Button>
-          </div>
+          {"order_number" in appointment && appointment.order_number && (
+            <div className="mt-8">
+              <TrackAppointmentForm
+                initialOrder={String(appointment.order_number)}
+                submitLabel="Check status"
+              />
+            </div>
+          )}
 
           <p className="mt-6 text-xs text-brand-subtle">
             Questions? Call{" "}

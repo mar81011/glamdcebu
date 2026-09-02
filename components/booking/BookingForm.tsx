@@ -79,10 +79,31 @@ export function BookingForm({
     selectedServices.reduce((sum, s) => sum + s.price, 0) +
     (visitType === "home_service" ? homeServiceFee : 0);
 
+  function categoryHasMain(cat: ServiceCategory, ids: string[]) {
+    return cat.mainServices.some((s) => ids.includes(s.id));
+  }
+
   function toggleService(id: string) {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedIds((prev) => {
+      const cat = orderedCategories.find(
+        (c) =>
+          c.mainServices.some((s) => s.id === id) ||
+          c.addons.some((s) => s.id === id),
+      );
+      const isAddon = cat?.addons.some((s) => s.id === id) ?? false;
+      if (isAddon && cat && !categoryHasMain(cat, prev)) return prev;
+
+      let next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+
+      if (cat && cat.mainServices.some((s) => s.id === id) && prev.includes(id)) {
+        if (!categoryHasMain(cat, next)) {
+          const addonIds = new Set(cat.addons.map((addon) => addon.id));
+          next = next.filter((x) => !addonIds.has(x));
+        }
+      }
+
+      return next;
+    });
   }
 
   function canNext(): boolean {
@@ -159,6 +180,22 @@ export function BookingForm({
   }, [initialCategories.length]);
 
   useEffect(() => {
+    setSelectedIds((prev) => {
+      const selected = new Set(prev);
+      return prev.filter((id) => {
+        const cat = orderedCategories.find(
+          (c) =>
+            c.mainServices.some((s) => s.id === id) ||
+            c.addons.some((s) => s.id === id),
+        );
+        if (!cat) return true;
+        if (cat.mainServices.some((s) => s.id === id)) return true;
+        return cat.mainServices.some((s) => selected.has(s.id));
+      });
+    });
+  }, [categories]);
+
+  useEffect(() => {
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
@@ -171,21 +208,39 @@ export function BookingForm({
   useEffect(() => {
     if (!date) {
       setAvailableSlots([]);
+      setLoadingSlots(false);
       return;
     }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setTime("");
     setLoadingSlots(true);
-    fetch(`/api/availability?date=${date}`)
+
+    fetch(`/api/availability?date=${date}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
+        if (cancelled) return;
         setAvailableSlots(data.slots ?? []);
         if (typeof data.durationMinutes === "number") {
           setDurationMinutes(data.durationMinutes);
         }
-        if (time && !data.slots?.includes(time)) setTime("");
       })
-      .catch(() => setAvailableSlots([]))
-      .finally(() => setLoadingSlots(false));
-  }, [date, time]);
+      .catch((error: unknown) => {
+        if (cancelled || (error instanceof DOMException && error.name === "AbortError")) {
+          return;
+        }
+        setAvailableSlots([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSlots(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [date]);
 
   return (
     <ContentCard>
@@ -254,12 +309,18 @@ export function BookingForm({
                       <h3 className="mb-2 text-center text-[11px] font-semibold tracking-wide text-brand-subtle uppercase">
                         Add-ons
                       </h3>
+                      {!categoryHasMain(cat, selectedIds) && (
+                        <p className="mb-2 text-center text-xs text-brand-muted">
+                          Choose a {cat.name} service first.
+                        </p>
+                      )}
                       <div className="grid gap-2 sm:grid-cols-2">
                         {cat.addons.map((addon) => (
                           <ServiceOption
                             key={addon.id}
                             service={addon}
                             selected={selectedIds.includes(addon.id)}
+                            disabled={!categoryHasMain(cat, selectedIds)}
                             onSelect={() => toggleService(addon.id)}
                           />
                         ))}
@@ -626,18 +687,22 @@ function ServiceOption({
   service,
   selected,
   onSelect,
+  disabled = false,
 }: {
   service: Service;
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={`choice-card flex w-full items-center justify-between ${
         selected ? "is-selected" : ""
-      }`}
+      } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
     >
       <span className="text-sm font-medium text-brand-ink">{service.name}</span>
       <span className="text-sm font-bold text-brand-brown">

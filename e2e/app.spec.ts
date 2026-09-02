@@ -35,10 +35,25 @@ test.describe("GLAM'D Cebu — public flows", () => {
     await expect(page.getByRole("heading", { name: /Lashes & Brows/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
 
+    await expect(page.getByRole("button", { name: /Wispy/i })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /French tips/i })).toBeDisabled();
+
     await page.getByRole("button", { name: /Classic/i }).click();
+    await expect(page.getByRole("button", { name: /Wispy/i })).toBeEnabled();
+    await expect(page.getByRole("button", { name: /French tips/i })).toBeDisabled();
+
     await page.getByRole("button", { name: /Continue/i }).click();
 
     await expect(page.getByText(/Step 2 of 5/)).toBeVisible();
+  });
+
+  test("tracking an appointment opens a modal on the same page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel(/Order number/i).fill("GLAM-XXXXXX");
+    await page.getByRole("button", { name: /Track my appointment/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page).toHaveURL(/\/(\?.*)?$/);
+    await expect(page.getByText(/No appointment found|Enter a valid/i)).toBeVisible();
   });
 
   test("menu books from the homepage CTA", async ({ page }) => {
