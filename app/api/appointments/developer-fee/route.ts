@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   readDeveloperPaidIds,
   setDeveloperFeePaid,
+  ensureDeveloperConfigBucket,
 } from "@/lib/developer/fee-paid-store";
-import { ensurePaymentsBucket } from "@/lib/payment/storage";
 
 async function requireDeveloper() {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export async function GET() {
     return NextResponse.json({ error: "Server is missing storage credentials." }, { status: 500 });
   }
 
-  await ensurePaymentsBucket(admin);
+  await ensureDeveloperConfigBucket(admin);
   const paidIds = await readDeveloperPaidIds(admin);
   return NextResponse.json({ paidIds: [...paidIds] });
 }
@@ -61,21 +61,26 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing appointment id" }, { status: 400 });
   }
 
-  await ensurePaymentsBucket(admin);
-  const paidIds = await setDeveloperFeePaid(admin, appointmentId, paid);
+  await ensureDeveloperConfigBucket(admin);
+  try {
+    const paidIds = await setDeveloperFeePaid(admin, appointmentId, paid);
 
-  // Keep DB column in sync when the migration has been applied.
-  const { error: dbError } = await admin
-    .from("appointments")
-    .update({ developer_fee_paid: paid })
-    .eq("id", appointmentId);
+    // Keep DB column in sync when the migration has been applied.
+    const { error: dbError } = await admin
+      .from("appointments")
+      .update({ developer_fee_paid: paid })
+      .eq("id", appointmentId);
 
-  if (dbError && !dbError.message.includes("developer_fee_paid")) {
-    return NextResponse.json({ error: dbError.message }, { status: 500 });
+    if (dbError && !dbError.message.includes("developer_fee_paid")) {
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      id: appointmentId,
+      developerFeePaid: paidIds.has(appointmentId),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not save paid status";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({
-    id: appointmentId,
-    developerFeePaid: paidIds.has(appointmentId),
-  });
 }

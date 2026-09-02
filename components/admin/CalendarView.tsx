@@ -39,7 +39,7 @@ interface Appointment {
 }
 
 const APPOINTMENT_SELECT = `id, customer_name, phone, appointment_at, duration_minutes, visit_type, home_address,
-  total_price, status, order_number, payment_reference, payment_proof_url, developer_fee_paid,
+  total_price, status, order_number, payment_reference, payment_proof_url,
   appointment_services ( services ( name ) )`;
 
 const APPOINTMENT_SELECT_FALLBACK = `id, customer_name, phone, appointment_at, duration_minutes, visit_type, home_address,
@@ -51,6 +51,7 @@ export function CalendarView() {
   );
   const [role, setRole] = useState<string>("owner");
   const [paidFeeIds, setPaidFeeIds] = useState<Set<string>>(new Set());
+  const [feeError, setFeeError] = useState("");
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -137,6 +138,7 @@ export function CalendarView() {
   }
 
   async function markDeveloperPaid(id: string, paid: boolean) {
+    setFeeError("");
     const res = await fetch("/api/appointments/developer-fee", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -144,7 +146,9 @@ export function CalendarView() {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error ?? "Could not update payment");
+      const message = data.error ?? "Could not update payment";
+      setFeeError(message);
+      throw new Error(message);
     }
     setAppointments((prev) =>
       prev.map((appt) =>
@@ -189,6 +193,7 @@ export function CalendarView() {
           variant="developer"
           onMarkDeveloperPaid={markDeveloperPaid}
         />
+        {feeError && <p className="text-sm text-red-700">{feeError}</p>}
         {loading && (
           <p className="text-center text-sm text-brand-muted">Loading bookings…</p>
         )}

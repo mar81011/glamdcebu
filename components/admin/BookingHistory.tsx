@@ -58,6 +58,7 @@ export function BookingHistory({
   onMarkDeveloperPaid?: (id: string, paid: boolean) => Promise<void>;
 }) {
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const isDeveloper = variant === "developer";
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
@@ -110,8 +111,13 @@ export function BookingHistory({
   async function markPaid(id: string, paid: boolean) {
     if (!onMarkDeveloperPaid) return;
     setMarkingId(id);
+    setActionError("");
     try {
       await onMarkDeveloperPaid(id, paid);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not update paid status",
+      );
     } finally {
       setMarkingId(null);
     }
@@ -187,6 +193,10 @@ export function BookingHistory({
           </>
         )}
       </div>
+
+      {actionError && (
+        <p className="text-sm text-red-700">{actionError}</p>
+      )}
 
       <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-subtle">
