@@ -64,8 +64,8 @@ export function WorkPhotosSettings() {
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
       <h3 className="font-serif text-brand-ink">Homepage carousel</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Upload photos here. They appear in the Our work carousel on the home
-        page, even if you only add one.
+        Upload your real work photos here. They replace the sample carousel on
+        the home page as soon as you add at least one.
       </p>
 
       <label className="mt-4 inline-flex cursor-pointer">
@@ -91,7 +91,8 @@ export function WorkPhotosSettings() {
         <div className="mt-4 flex aspect-[4/3] flex-col items-center justify-center rounded-2xl border border-dashed border-brand-brown/20 bg-brand-beige/60 px-4 text-center">
           <p className="text-sm font-medium text-brand-ink">No photos yet</p>
           <p className="mt-1 text-sm text-brand-muted">
-            The empty carousel still shows on the home page until you upload.
+            Sample photos are showing on the home page for now. Upload yours to
+            replace them.
           </p>
         </div>
       ) : (
