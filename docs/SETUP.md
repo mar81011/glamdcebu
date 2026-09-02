@@ -28,7 +28,11 @@ Works on **both** local and production (same Supabase project).
 | Role | Email | Password |
 |------|-------|----------|
 | Christine (owner) | `christine@glamdcebu.com` | `GlamDAdmin2026!` |
-| Developer (owner) | `admin@glamdcebu.com` | `GlamDAdmin2026!` |
+| Developer | `admin@glamdcebu.com` | `GlamDAdmin2026!` |
+
+**Owner** (`christine@…`) — full admin: calendar, products, settings.
+
+**Developer** (`admin@…`) — history only: ₱10 per booking, mark **Paid** when the client sends your fee.
 
 Change these passwords after first login via [Supabase Dashboard](https://supabase.com/dashboard) → Authentication → Users.
 

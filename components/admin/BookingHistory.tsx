@@ -16,6 +16,12 @@ import {
   shiftAnchor,
 } from "@/lib/booking/history";
 import { getJoinedServiceName } from "@/lib/supabase/service-join";
+import {
+  DEVELOPER_FEE_PER_BOOKING,
+  developerFeeForStatus,
+  sumDeveloperFees,
+} from "@/lib/developer/fee";
+import { Button } from "@/components/ui/Button";
 
 export interface HistoryAppointment {
   id: string;
@@ -29,6 +35,7 @@ export interface HistoryAppointment {
   payment_reference?: string | null;
   payment_proof_url?: string | null;
   status: "pending" | "confirmed" | "cancelled" | "completed";
+  developer_fee_paid?: boolean | null;
   appointment_services: Array<{
     services: { name: string } | { name: string }[] | null;
   }>;
@@ -43,9 +50,15 @@ const STATUS_COLORS = {
 
 export function BookingHistory({
   appointments,
+  variant = "owner",
+  onMarkDeveloperPaid,
 }: {
   appointments: HistoryAppointment[];
+  variant?: "owner" | "developer";
+  onMarkDeveloperPaid?: (id: string, paid: boolean) => Promise<void>;
 }) {
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const isDeveloper = variant === "developer";
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
 
@@ -68,6 +81,21 @@ export function BookingHistory({
 
   const stats = useMemo(() => {
     const active = inPeriod.filter((a) => a.status !== "cancelled");
+    if (isDeveloper) {
+      const billable = active.length;
+      const owed = sumDeveloperFees(active, { unpaidOnly: true });
+      const collected = sumDeveloperFees(active, { paidOnly: true });
+      const unpaidCount = active.filter((a) => !a.developer_fee_paid).length;
+      return {
+        total: inPeriod.length,
+        active: billable,
+        cancelled: inPeriod.filter((a) => a.status === "cancelled").length,
+        owed,
+        collected,
+        unpaidCount,
+        paidCount: billable - unpaidCount,
+      };
+    }
     return {
       total: inPeriod.length,
       active: active.length,
@@ -77,7 +105,17 @@ export function BookingHistory({
       confirmed: active.filter((a) => a.status === "confirmed").length,
       completed: active.filter((a) => a.status === "completed").length,
     };
-  }, [inPeriod]);
+  }, [inPeriod, isDeveloper]);
+
+  async function markPaid(id: string, paid: boolean) {
+    if (!onMarkDeveloperPaid) return;
+    setMarkingId(id);
+    try {
+      await onMarkDeveloperPaid(id, paid);
+    } finally {
+      setMarkingId(null);
+    }
+  }
 
   const dailyBuckets = useMemo(
     () => buildDailyBuckets(range, inPeriod),
@@ -133,10 +171,21 @@ export function BookingHistory({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatCard label="Bookings" value={String(stats.active)} />
-        <StatCard label="Revenue" value={formatPrice(stats.revenue)} />
-        <StatCard label="Confirmed" value={String(stats.confirmed)} />
-        <StatCard label="Cancelled" value={String(stats.cancelled)} />
+        {isDeveloper ? (
+          <>
+            <StatCard label="Bookings" value={String(stats.active)} />
+            <StatCard label="Owed to you" value={formatPrice(stats.owed ?? 0)} />
+            <StatCard label="Collected" value={formatPrice(stats.collected ?? 0)} />
+            <StatCard label="Unpaid" value={String(stats.unpaidCount ?? 0)} />
+          </>
+        ) : (
+          <>
+            <StatCard label="Bookings" value={String(stats.active)} />
+            <StatCard label="Revenue" value={formatPrice(stats.revenue ?? 0)} />
+            <StatCard label="Confirmed" value={String(stats.confirmed ?? 0)} />
+            <StatCard label="Cancelled" value={String(stats.cancelled)} />
+          </>
+        )}
       </div>
 
       <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
@@ -173,7 +222,8 @@ export function BookingHistory({
 
       <div>
         <h3 className="mb-2 font-serif text-xs font-semibold tracking-[0.2em] text-brand-muted uppercase">
-          History ({inPeriod.length})
+          {isDeveloper ? `Bookings · ₱${DEVELOPER_FEE_PER_BOOKING} each` : `History`} (
+          {inPeriod.length})
         </h3>
         {inPeriod.length === 0 ? (
           <p className="rounded-xl border border-brand-brown/12 bg-brand-cream/50 px-4 py-6 text-center text-sm text-brand-muted">
@@ -188,6 +238,8 @@ export function BookingHistory({
                 .filter(Boolean)
                 .join(", ");
               const duration = appt.duration_minutes ?? APPOINTMENT_DURATION_MINUTES;
+              const fee = developerFeeForStatus(appt.status);
+              const isPaid = Boolean(appt.developer_fee_paid);
 
               return (
                 <div
@@ -201,11 +253,18 @@ export function BookingHistory({
                       </p>
                       <p className="truncate text-xs text-brand-muted">{serviceNames}</p>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[appt.status]}`}
-                    >
-                      {appt.status}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[appt.status]}`}
+                      >
+                        {appt.status}
+                      </span>
+                      {isDeveloper && fee > 0 && (
+                        <span className="text-xs font-bold text-brand-brown">
+                          {formatPrice(fee)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-1 text-xs text-brand-muted">
                     {dt.toLocaleDateString("en-PH", {
@@ -213,14 +272,42 @@ export function BookingHistory({
                       month: "short",
                       day: "numeric",
                     })}{" "}
-                    · {formatTimeRange(dt, duration)} · {formatPrice(appt.total_price)}
+                    · {formatTimeRange(dt, duration)}
+                    {!isDeveloper && ` · ${formatPrice(appt.total_price)}`}
                   </p>
                   <p className="text-[10px] text-brand-subtle">
                     {visitTypeLabel(appt.visit_type)} · {appt.phone}
                     {appt.order_number ? ` · ${appt.order_number}` : ""}
-                    {appt.payment_reference ? ` · GCash ${appt.payment_reference}` : ""}
+                    {!isDeveloper && appt.payment_reference
+                      ? ` · GCash ${appt.payment_reference}`
+                      : ""}
                   </p>
-                  {appt.payment_proof_url && (
+                  {isDeveloper && fee > 0 && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      {isPaid ? (
+                        <span className="text-xs font-semibold text-green-800">
+                          Paid · {formatPrice(fee)} received
+                        </span>
+                      ) : (
+                        <span className="text-xs text-brand-muted">
+                          {formatPrice(fee)} from client
+                        </span>
+                      )}
+                      <Button
+                        variant={isPaid ? "outline" : undefined}
+                        className="px-3 py-1 text-xs"
+                        disabled={markingId === appt.id}
+                        onClick={() => markPaid(appt.id, !isPaid)}
+                      >
+                        {markingId === appt.id
+                          ? "Saving…"
+                          : isPaid
+                            ? "Unpaid"
+                            : "Paid"}
+                      </Button>
+                    </div>
+                  )}
+                  {!isDeveloper && appt.payment_proof_url && (
                     <a
                       href={appt.payment_proof_url}
                       target="_blank"
