@@ -20,6 +20,11 @@ import {
   type VisitType,
 } from "@/lib/booking/constants";
 import { slotEndLabel } from "@/lib/booking/slots";
+import {
+  bookingBalanceDue,
+  bookingDepositAmount,
+  BOOKING_DEPOSIT_PERCENT_LABEL,
+} from "@/lib/payment/deposit";
 
 const STEPS = ["Services", "Date & Time", "Your Info", "GCash", "Review"];
 
@@ -78,6 +83,8 @@ export function BookingForm({
   const total =
     selectedServices.reduce((sum, s) => sum + s.price, 0) +
     (visitType === "home_service" ? homeServiceFee : 0);
+  const depositDue = bookingDepositAmount(total);
+  const balanceDue = bookingBalanceDue(total);
 
   function categoryHasMain(cat: ServiceCategory, ids: string[]) {
     return cat.mainServices.some((s) => ids.includes(s.id));
@@ -511,10 +518,19 @@ export function BookingForm({
               Pay with GCash
             </p>
             <p className="mt-1 text-center text-2xl font-bold text-brand-ink">
-              {formatPrice(total)}
+              {formatPrice(depositDue)}
             </p>
             <p className="mt-1 text-center text-xs text-brand-muted">
-              Send this exact amount, then upload your receipt.
+              {BOOKING_DEPOSIT_PERCENT_LABEL} deposit to confirm your booking
+            </p>
+            {total > depositDue && (
+              <p className="mt-2 text-center text-xs text-brand-muted">
+                Service total {formatPrice(total)} · Balance on visit{" "}
+                {formatPrice(balanceDue)}
+              </p>
+            )}
+            <p className="mt-2 text-center text-xs text-brand-muted">
+              Send this exact deposit amount, then upload your receipt.
             </p>
           </div>
 
@@ -625,13 +641,15 @@ export function BookingForm({
           )}
           <ReviewRow label="Name" value={name || "—"} />
           <ReviewRow label="Phone" value={phone || "—"} />
-          <ReviewRow label="Payment" value="GCash" />
+          <ReviewRow label="Payment" value="GCash (50% deposit)" />
           <ReviewRow label="Reference" value={paymentReference || "—"} />
           {notes && <ReviewRow label="Notes" value={notes} />}
           <DiamondDivider />
-          <div className="flex justify-between text-base font-bold">
-            <span>Total</span>
-            <span>{formatPrice(total)}</span>
+          <ReviewRow label="Service total" value={formatPrice(total)} />
+          <ReviewRow label="Deposit due now" value={formatPrice(depositDue)} />
+          <div className="flex justify-between gap-4 border-b border-brand-brown/8 pb-2 text-base font-bold">
+            <span>Balance on visit</span>
+            <span>{formatPrice(balanceDue)}</span>
           </div>
         </div>
       )}
@@ -674,8 +692,12 @@ export function BookingForm({
             </p>
           )}
           <p>
-            Running total:{" "}
+            Service total:{" "}
             <strong className="text-brand-ink">{formatPrice(total)}</strong>
+          </p>
+          <p>
+            Deposit due now ({BOOKING_DEPOSIT_PERCENT_LABEL}):{" "}
+            <strong className="text-brand-ink">{formatPrice(depositDue)}</strong>
           </p>
         </div>
       )}

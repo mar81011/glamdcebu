@@ -10,6 +10,7 @@ import {
 } from "@/lib/booking/constants";
 import { parseDateKey, toDateKey } from "@/lib/calendar-utils";
 import { getJoinedServiceName } from "@/lib/supabase/service-join";
+import { bookingDepositAmount } from "@/lib/payment/deposit";
 
 export interface ScheduleAppointment {
   id: string;
@@ -168,7 +169,10 @@ export function AppointmentSchedule({
                     </p>
                   )}
                   <p className="mt-2 text-sm font-medium text-brand-ink">{serviceNames}</p>
-                  <p className="mt-1 text-xs text-brand-muted">{formatPrice(appt.total_price)}</p>
+                  <p className="mt-1 text-xs text-brand-muted">
+                    {formatPrice(appt.total_price)} total ·{" "}
+                    {formatPrice(bookingDepositAmount(appt.total_price))} deposit
+                  </p>
                   {appt.payment_reference && (
                     <p className="mt-1 text-xs text-brand-muted">
                       GCash ref: {appt.payment_reference}

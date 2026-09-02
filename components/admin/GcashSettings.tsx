@@ -87,9 +87,9 @@ export function GcashSettings() {
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
       <h3 className="font-serif text-brand-ink">GCash payment</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Guests pay by GCash only. Add your number and/or QR, plus the steps they
-        should follow. You will see their order number, reference, and receipt
-        on the calendar.
+        Guests pay a 50% GCash deposit to book. Add your number and/or QR, plus
+        the steps they should follow. You will see their order number, reference,
+        and receipt on the calendar.
       </p>
 
       {loading ? (

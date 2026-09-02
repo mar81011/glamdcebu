@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { normalizeOrderNumber } from "@/lib/booking/order-number";
 import type { TrackedAppointment } from "@/lib/booking/tracked-appointment";
 import { formatPrice } from "@/lib/services-data";
+import { bookingBalanceDue, bookingDepositAmount } from "@/lib/payment/deposit";
 
 export function TrackAppointmentForm({
   initialOrder = "",
@@ -145,6 +146,14 @@ function TrackResultModal({
             <Row label="Date" value={appointment.date} />
             <Row label="Time" value={appointment.time} />
             <Row label="Total" value={formatPrice(appointment.total)} />
+            <Row
+              label="Deposit paid"
+              value={formatPrice(bookingDepositAmount(appointment.total))}
+            />
+            <Row
+              label="Balance on visit"
+              value={formatPrice(bookingBalanceDue(appointment.total))}
+            />
             {appointment.statusHint && (
               <p className="pt-2 text-center text-sm text-brand-muted">
                 {appointment.statusHint}

@@ -16,6 +16,7 @@ import {
   visitTypeLabel,
 } from "@/lib/booking/constants";
 import { guestStatusLabel } from "@/lib/booking/order-number";
+import { bookingBalanceDue, bookingDepositAmount } from "@/lib/payment/deposit";
 import { createClient } from "@/lib/supabase/server";
 import { getJoinedServiceName } from "@/lib/supabase/service-join";
 
@@ -72,6 +73,8 @@ export default async function ConfirmPage({ params }: Props) {
     year: "numeric",
   });
   const timeRange = formatTimeRange(start, duration);
+  const depositPaid = bookingDepositAmount(appointment.total_price);
+  const balanceDue = bookingBalanceDue(appointment.total_price);
 
   return (
     <PageShell>
@@ -115,7 +118,9 @@ export default async function ConfirmPage({ params }: Props) {
               label="Time"
               value={`${timeRange} (${formatDurationLabel(duration)})`}
             />
-            <Row label="Total" value={formatPrice(appointment.total_price)} highlight />
+            <Row label="Service total" value={formatPrice(appointment.total_price)} />
+            <Row label="Deposit paid" value={formatPrice(depositPaid)} highlight />
+            <Row label="Balance on visit" value={formatPrice(balanceDue)} />
             {"payment_reference" in appointment && appointment.payment_reference && (
               <Row label="GCash ref" value={String(appointment.payment_reference)} />
             )}
