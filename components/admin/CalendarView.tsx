@@ -182,7 +182,7 @@ export function CalendarView() {
         <p className="rounded-xl border border-brand-brown/12 bg-brand-cream/60 px-4 py-3 text-sm text-brand-muted">
           You earn <strong className="text-brand-ink">₱10 per booking</strong> from
           the client. Tap <strong className="text-brand-ink">Paid</strong> when you
-          receive it.
+          receive it — it will show as <strong className="text-brand-ink">RECEIVED</strong>.
         </p>
         <BookingHistory
           appointments={appointments.map((appt) => ({

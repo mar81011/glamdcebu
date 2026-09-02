@@ -182,7 +182,7 @@ export function BookingHistory({
             <StatCard label="Bookings" value={String(stats.active)} />
             <StatCard label="Owed to you" value={formatPrice(stats.owed ?? 0)} />
             <StatCard label="Collected" value={formatPrice(stats.collected ?? 0)} />
-            <StatCard label="Unpaid" value={String(stats.unpaidCount ?? 0)} />
+            <StatCard label="Received" value={String(stats.paidCount ?? 0)} />
           </>
         ) : (
           <>
@@ -296,7 +296,7 @@ export function BookingHistory({
                     <div className="mt-2 flex items-center justify-between gap-2">
                       {isPaid ? (
                         <span className="text-xs font-semibold text-green-800">
-                          Paid · {formatPrice(fee)} received
+                          RECEIVED · {formatPrice(fee)}
                         </span>
                       ) : (
                         <span className="text-xs text-brand-muted">
@@ -306,13 +306,13 @@ export function BookingHistory({
                       <Button
                         variant={isPaid ? "outline" : undefined}
                         className="px-3 py-1 text-xs"
-                        disabled={markingId === appt.id}
-                        onClick={() => markPaid(appt.id, !isPaid)}
+                        disabled={markingId === appt.id || isPaid}
+                        onClick={() => markPaid(appt.id, true)}
                       >
                         {markingId === appt.id
                           ? "Saving…"
                           : isPaid
-                            ? "Unpaid"
+                            ? "RECEIVED"
                             : "Paid"}
                       </Button>
                     </div>
