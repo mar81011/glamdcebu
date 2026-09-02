@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  readDeveloperPaidIds,
+  setDeveloperFeePaid,
+} from "@/lib/developer/fee-paid-store";
+import { ensurePaymentsBucket } from "@/lib/payment/storage";
 
-export async function PATCH(request: Request) {
+async function requireDeveloper() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
   const { data: profile } = await supabase
@@ -18,7 +24,33 @@ export async function PATCH(request: Request) {
     .single();
 
   if (profile?.role !== "developer") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+
+  return { user };
+}
+
+export async function GET() {
+  const auth = await requireDeveloper();
+  if (auth.error) return auth.error;
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Server is missing storage credentials." }, { status: 500 });
+  }
+
+  await ensurePaymentsBucket(admin);
+  const paidIds = await readDeveloperPaidIds(admin);
+  return NextResponse.json({ paidIds: [...paidIds] });
+}
+
+export async function PATCH(request: Request) {
+  const auth = await requireDeveloper();
+  if (auth.error) return auth.error;
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return NextResponse.json({ error: "Server is missing storage credentials." }, { status: 500 });
   }
 
   const body = await request.json();
@@ -29,16 +61,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing appointment id" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  await ensurePaymentsBucket(admin);
+  const paidIds = await setDeveloperFeePaid(admin, appointmentId, paid);
+
+  // Keep DB column in sync when the migration has been applied.
+  const { error: dbError } = await admin
     .from("appointments")
     .update({ developer_fee_paid: paid })
-    .eq("id", appointmentId)
-    .select("id, developer_fee_paid")
-    .single();
+    .eq("id", appointmentId);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError && !dbError.message.includes("developer_fee_paid")) {
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ id: data.id, developerFeePaid: data.developer_fee_paid });
+  return NextResponse.json({
+    id: appointmentId,
+    developerFeePaid: paidIds.has(appointmentId),
+  });
 }

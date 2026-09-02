@@ -50,6 +50,7 @@ export function CalendarView() {
     "calendar",
   );
   const [role, setRole] = useState<string>("owner");
+  const [paidFeeIds, setPaidFeeIds] = useState<Set<string>>(new Set());
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -108,6 +109,18 @@ export function CalendarView() {
     loadAppointments();
   }, []);
 
+  useEffect(() => {
+    if (!isDeveloper) return;
+    fetch("/api/appointments/developer-fee")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.paidIds)) {
+          setPaidFeeIds(new Set(data.paidIds));
+        }
+      })
+      .catch(() => setPaidFeeIds(new Set()));
+  }, [isDeveloper]);
+
   const markedDates = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const a of appointments) {
@@ -138,6 +151,12 @@ export function CalendarView() {
         appt.id === id ? { ...appt, developer_fee_paid: paid } : appt,
       ),
     );
+    setPaidFeeIds((prev) => {
+      const next = new Set(prev);
+      if (paid) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   }
 
   function selectDate(dateKey: string) {
@@ -162,7 +181,11 @@ export function CalendarView() {
           receive it.
         </p>
         <BookingHistory
-          appointments={appointments}
+          appointments={appointments.map((appt) => ({
+            ...appt,
+            developer_fee_paid:
+              appt.developer_fee_paid ?? paidFeeIds.has(appt.id),
+          }))}
           variant="developer"
           onMarkDeveloperPaid={markDeveloperPaid}
         />
