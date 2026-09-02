@@ -6,6 +6,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { PillBadge } from "@/components/ui/PillBadge";
 import { CopyOrderNumber } from "@/components/booking/CopyOrderNumber";
 import { TrackAppointmentForm } from "@/components/booking/TrackAppointmentForm";
+import { Button } from "@/components/ui/Button";
 import { getShopContact } from "@/lib/contact/get-contact";
 import { formatPrice } from "@/lib/services-data";
 import {
@@ -129,6 +130,12 @@ export default async function ConfirmPage({ params }: Props) {
               />
             </div>
           )}
+
+          <div className="mt-8">
+            <Button href="/" variant="outline" className="w-full">
+              Back to Home
+            </Button>
+          </div>
 
           <p className="mt-6 text-xs text-brand-subtle">
             Questions? Call{" "}
