@@ -8,13 +8,15 @@ import {
   type ShopContact,
 } from "@/lib/contact/defaults";
 import { contactFromRow } from "@/lib/contact/get-contact";
+import { DEFAULT_GCASH_INSTRUCTIONS } from "@/lib/payment/defaults";
 
 const REMINDER_OPTIONS = [0, 1, 2, 4, 24, 48];
 
 const CONTACT_SELECT = `home_service_fee, site_title, appointment_reminder_hours,
   contact_phone, contact_phone_display, contact_address, contact_maps_url,
   contact_instagram_url, contact_instagram_label,
-  contact_facebook_url, contact_facebook_label`;
+  contact_facebook_url, contact_facebook_label,
+  gcash_number, gcash_account_name, gcash_qr_url, gcash_instructions`;
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -67,6 +69,20 @@ function parseContactInput(body: Record<string, unknown>): ShopContact | null {
   };
 }
 
+function gcashFromRow(data: {
+  gcash_number?: string | null;
+  gcash_account_name?: string | null;
+  gcash_qr_url?: string | null;
+  gcash_instructions?: string | null;
+}) {
+  return {
+    number: data.gcash_number?.trim() || "",
+    accountName: data.gcash_account_name?.trim() || "",
+    qrUrl: data.gcash_qr_url?.trim() || "",
+    instructions: data.gcash_instructions?.trim() || DEFAULT_GCASH_INSTRUCTIONS,
+  };
+}
+
 function settingsResponse(data: {
   home_service_fee: number | null;
   site_title: string | null;
@@ -79,12 +95,17 @@ function settingsResponse(data: {
   contact_instagram_label: string | null;
   contact_facebook_url: string | null;
   contact_facebook_label: string | null;
+  gcash_number?: string | null;
+  gcash_account_name?: string | null;
+  gcash_qr_url?: string | null;
+  gcash_instructions?: string | null;
 }) {
   return {
     homeServiceFee: data.home_service_fee ?? 0,
     siteTitle: data.site_title?.trim() || DEFAULT_BRANDING.siteTitle,
     appointmentReminderHours: data.appointment_reminder_hours ?? 24,
     contact: contactFromRow(data),
+    gcash: gcashFromRow(data),
   };
 }
 
@@ -102,6 +123,7 @@ export async function GET() {
       siteTitle: DEFAULT_BRANDING.siteTitle,
       appointmentReminderHours: 24,
       contact: contactFromRow(null),
+      gcash: gcashFromRow({}),
     });
   }
 
@@ -170,6 +192,28 @@ export async function PATCH(request: Request) {
     updates.contact_instagram_label = contact.instagramLabel;
     updates.contact_facebook_url = contact.facebookUrl;
     updates.contact_facebook_label = contact.facebookLabel;
+  }
+
+  if (body.gcash !== undefined) {
+    if (!body.gcash || typeof body.gcash !== "object") {
+      return NextResponse.json({ error: "Invalid GCash details" }, { status: 400 });
+    }
+    const gcash = body.gcash as Record<string, unknown>;
+    const number = String(gcash.number ?? "").replace(/\D/g, "");
+    const accountName = String(gcash.accountName ?? "").trim();
+    const instructions = String(gcash.instructions ?? "").trim();
+    if (number && (number.length < 10 || number.length > 13)) {
+      return NextResponse.json({ error: "Enter a valid GCash number" }, { status: 400 });
+    }
+    if (accountName.length > 80) {
+      return NextResponse.json({ error: "Account name is too long" }, { status: 400 });
+    }
+    if (instructions.length > 1000) {
+      return NextResponse.json({ error: "Instructions are too long" }, { status: 400 });
+    }
+    updates.gcash_number = number || null;
+    updates.gcash_account_name = accountName || null;
+    updates.gcash_instructions = instructions || DEFAULT_GCASH_INSTRUCTIONS;
   }
 
   const { data, error } = await supabase

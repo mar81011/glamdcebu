@@ -1,47 +1,123 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { APPOINTMENT_DURATION_MINUTES } from "@/lib/booking/constants";
+import { generateOrderNumber } from "@/lib/booking/order-number";
 import { slotToIso } from "@/lib/booking/slots";
+import { ensurePaymentsBucket, PAYMENTS_BUCKET } from "@/lib/payment/storage";
 import { notifyAdminsOfBooking } from "@/lib/push/send-booking-notification";
+
+const MAX_PROOF_BYTES = 8 * 1024 * 1024;
+const ALLOWED_PROOF = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+type BookingInput = {
+  customerName: string;
+  phone: string;
+  notes: string;
+  date: string;
+  time: string;
+  visitType: string;
+  homeAddress: string;
+  serviceIds: string[];
+  paymentReference: string;
+  paymentProof: File | null;
+};
+
+async function parseBooking(request: Request): Promise<BookingInput> {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const rawIds = form.getAll("serviceIds").map(String);
+    const mainServiceId = String(form.get("mainServiceId") ?? "");
+    const proof = form.get("paymentProof");
+    return {
+      customerName: String(form.get("customerName") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      notes: String(form.get("notes") ?? ""),
+      date: String(form.get("date") ?? ""),
+      time: String(form.get("time") ?? ""),
+      visitType: String(form.get("visitType") ?? "walk_in"),
+      homeAddress: String(form.get("homeAddress") ?? ""),
+      serviceIds: rawIds.length > 0 ? rawIds : mainServiceId ? [mainServiceId] : [],
+      paymentReference: String(form.get("paymentReference") ?? ""),
+      paymentProof: proof instanceof File && proof.size > 0 ? proof : null,
+    };
+  }
+
+  const body = await request.json();
+  const rawServiceIds = body.serviceIds;
+  const serviceIds = Array.from(
+    new Set(
+      (Array.isArray(rawServiceIds) && rawServiceIds.length > 0
+        ? rawServiceIds
+        : [body.mainServiceId, ...(body.addonIds ?? [])]
+      ).filter((id: unknown) => typeof id === "string" && id.length > 0),
+    ),
+  );
+  return {
+    customerName: String(body.customerName ?? ""),
+    phone: String(body.phone ?? ""),
+    notes: String(body.notes ?? ""),
+    date: String(body.date ?? ""),
+    time: String(body.time ?? ""),
+    visitType: String(body.visitType ?? "walk_in"),
+    homeAddress: String(body.homeAddress ?? ""),
+    serviceIds,
+    paymentReference: String(body.paymentReference ?? ""),
+    paymentProof: null,
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const {
-      customerName,
-      phone,
-      notes,
-      date,
-      time,
-      mainServiceId,
-      addonIds = [],
-      serviceIds: rawServiceIds,
-      visitType = "walk_in",
-      homeAddress,
-    } = body;
+    const input = await parseBooking(request);
+    const serviceIds = Array.from(new Set(input.serviceIds));
 
-    const serviceIds = Array.from(
-      new Set(
-        (Array.isArray(rawServiceIds) && rawServiceIds.length > 0
-          ? rawServiceIds
-          : [mainServiceId, ...addonIds]
-        ).filter((id: unknown) => typeof id === "string" && id.length > 0),
-      ),
-    );
-
-    if (!customerName?.trim() || !phone?.trim() || !date || !time || serviceIds.length === 0) {
+    if (
+      !input.customerName.trim() ||
+      !input.phone.trim() ||
+      !input.date ||
+      !input.time ||
+      serviceIds.length === 0
+    ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    if (visitType !== "walk_in" && visitType !== "home_service") {
+    if (input.visitType !== "walk_in" && input.visitType !== "home_service") {
       return NextResponse.json({ error: "Invalid visit type" }, { status: 400 });
     }
 
-    if (visitType === "home_service" && !homeAddress?.trim()) {
+    if (input.visitType === "home_service" && !input.homeAddress.trim()) {
       return NextResponse.json({ error: "Home address is required" }, { status: 400 });
     }
 
+    const paymentReference = input.paymentReference.trim();
+    if (paymentReference.length < 5) {
+      return NextResponse.json(
+        { error: "Enter your GCash reference number" },
+        { status: 400 },
+      );
+    }
+
+    if (!input.paymentProof) {
+      return NextResponse.json(
+        { error: "Upload a screenshot of your GCash receipt" },
+        { status: 400 },
+      );
+    }
+    if (!ALLOWED_PROOF.has(input.paymentProof.type)) {
+      return NextResponse.json({ error: "Use a JPG, PNG, or WebP receipt photo." }, { status: 400 });
+    }
+    if (input.paymentProof.size > MAX_PROOF_BYTES) {
+      return NextResponse.json({ error: "Receipt photo must be 8MB or smaller." }, { status: 400 });
+    }
+
     const supabase = await createClient();
+    const admin = createAdminClient();
+    if (!admin) {
+      return NextResponse.json({ error: "Server is missing storage credentials." }, { status: 500 });
+    }
 
     const { data: settings } = await supabase
       .from("shop_settings")
@@ -50,7 +126,7 @@ export async function POST(request: Request) {
       .single();
 
     const homeServiceFee =
-      visitType === "home_service" ? (settings?.home_service_fee ?? 0) : 0;
+      input.visitType === "home_service" ? (settings?.home_service_fee ?? 0) : 0;
 
     const { data: services, error: svcError } = await supabase
       .from("services")
@@ -64,32 +140,76 @@ export async function POST(request: Request) {
 
     const total =
       services.reduce((sum, s) => sum + s.price, 0) +
-      (visitType === "home_service" ? homeServiceFee : 0);
+      (input.visitType === "home_service" ? homeServiceFee : 0);
 
-    const appointmentAt = slotToIso(date, time);
+    const appointmentAt = slotToIso(input.date, input.time);
+    const ext =
+      input.paymentProof.type === "image/png"
+        ? "png"
+        : input.paymentProof.type === "image/webp"
+          ? "webp"
+          : "jpg";
+    const proofPath = `proofs/${crypto.randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await input.paymentProof.arrayBuffer());
 
-    const { data: appointment, error: apptError } = await supabase
-      .from("appointments")
-      .insert({
-        customer_name: customerName.trim(),
-        phone: phone.trim(),
-        notes: notes?.trim() || null,
-        appointment_at: appointmentAt,
-        duration_minutes: APPOINTMENT_DURATION_MINUTES,
-        visit_type: visitType,
-        home_address: visitType === "home_service" ? homeAddress.trim() : null,
-        home_service_fee: visitType === "home_service" ? homeServiceFee : 0,
-        status: "pending",
-        total_price: total,
-      })
-      .select("id")
-      .single();
+    await ensurePaymentsBucket(admin);
 
-    if (apptError || !appointment) {
-      return NextResponse.json({ error: apptError?.message ?? "Booking failed" }, { status: 500 });
+    const { error: uploadError } = await admin.storage.from(PAYMENTS_BUCKET).upload(proofPath, buffer, {
+      contentType: input.paymentProof.type,
+      upsert: false,
+    });
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const rows = serviceIds.map((sid: string) => ({
+    const { data: publicData } = admin.storage.from(PAYMENTS_BUCKET).getPublicUrl(proofPath);
+
+    let appointment:
+      | { id: string; order_number: string }
+      | null = null;
+    let lastError = "";
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const orderNumber = generateOrderNumber();
+      const { data, error: apptError } = await supabase
+        .from("appointments")
+        .insert({
+          customer_name: input.customerName.trim(),
+          phone: input.phone.trim(),
+          notes: input.notes.trim() || null,
+          appointment_at: appointmentAt,
+          duration_minutes: APPOINTMENT_DURATION_MINUTES,
+          visit_type: input.visitType,
+          home_address: input.visitType === "home_service" ? input.homeAddress.trim() : null,
+          home_service_fee: input.visitType === "home_service" ? homeServiceFee : 0,
+          status: "pending",
+          total_price: total,
+          order_number: orderNumber,
+          payment_method: "gcash",
+          payment_reference: paymentReference,
+          payment_proof_url: publicData.publicUrl,
+          payment_proof_path: proofPath,
+        })
+        .select("id, order_number")
+        .single();
+
+      if (data) {
+        appointment = data;
+        break;
+      }
+      lastError = apptError?.message ?? "Booking failed";
+      if (!lastError.toLowerCase().includes("order_number")) {
+        await admin.storage.from(PAYMENTS_BUCKET).remove([proofPath]);
+        return NextResponse.json({ error: lastError }, { status: 500 });
+      }
+    }
+
+    if (!appointment) {
+      await admin.storage.from(PAYMENTS_BUCKET).remove([proofPath]);
+      return NextResponse.json({ error: lastError || "Booking failed" }, { status: 500 });
+    }
+
+    const rows = serviceIds.map((sid) => ({
       appointment_id: appointment.id,
       service_id: sid,
     }));
@@ -103,13 +223,16 @@ export async function POST(request: Request) {
     }
 
     void notifyAdminsOfBooking({
-      customerName: customerName.trim(),
-      date,
-      time,
-      visitType,
+      customerName: input.customerName.trim(),
+      date: input.date,
+      time: input.time,
+      visitType: input.visitType,
     });
 
-    return NextResponse.json({ id: appointment.id });
+    return NextResponse.json({
+      id: appointment.id,
+      orderNumber: appointment.order_number,
+    });
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

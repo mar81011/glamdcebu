@@ -5,6 +5,7 @@ import { ContentCard } from "@/components/ui/ContentCard";
 import { DiamondDivider } from "@/components/ui/DiamondDivider";
 import { PageShell } from "@/components/ui/PageShell";
 import { PillBadge } from "@/components/ui/PillBadge";
+import { CopyOrderNumber } from "@/components/booking/CopyOrderNumber";
 import { getShopContact } from "@/lib/contact/get-contact";
 import { formatPrice } from "@/lib/services-data";
 import {
@@ -13,6 +14,7 @@ import {
   formatTimeRange,
   visitTypeLabel,
 } from "@/lib/booking/constants";
+import { guestStatusLabel } from "@/lib/booking/order-number";
 import { createClient } from "@/lib/supabase/server";
 import { getJoinedServiceName } from "@/lib/supabase/service-join";
 
@@ -24,15 +26,28 @@ export default async function ConfirmPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: appointment } = await supabase
+  const withOrder = await supabase
     .from("appointments")
     .select(
-      `id, customer_name, phone, appointment_at, total_price, status,
-       duration_minutes, visit_type, home_address, home_service_fee,
+      `id, customer_name, phone, appointment_at, total_price, status, order_number,
+       duration_minutes, visit_type, home_address, home_service_fee, payment_reference,
        appointment_services ( service_id, services ( name, price ) )`,
     )
     .eq("id", id)
-    .single();
+    .maybeSingle();
+
+  const { data: appointment } =
+    withOrder.data
+      ? withOrder
+      : await supabase
+          .from("appointments")
+          .select(
+            `id, customer_name, phone, appointment_at, total_price, status,
+             duration_minutes, visit_type, home_address, home_service_fee,
+             appointment_services ( service_id, services ( name, price ) )`,
+          )
+          .eq("id", id)
+          .single();
 
   if (!appointment) notFound();
 
@@ -64,7 +79,7 @@ export default async function ConfirmPage({ params }: Props) {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl text-green-700">
             ✓
           </div>
-          <PillBadge>Confirmed</PillBadge>
+          <PillBadge>{guestStatusLabel(appointment.status)}</PillBadge>
 
           <h1 className="mt-6 font-serif text-2xl text-brand-ink">
             Booking Request Sent
@@ -73,6 +88,12 @@ export default async function ConfirmPage({ params }: Props) {
             Thank you, {appointment.customer_name}! Christine will confirm your
             appointment shortly.
           </p>
+
+          {"order_number" in appointment && appointment.order_number && (
+            <div className="mt-5">
+              <CopyOrderNumber orderNumber={String(appointment.order_number)} />
+            </div>
+          )}
 
           <DiamondDivider />
 
@@ -94,12 +115,15 @@ export default async function ConfirmPage({ params }: Props) {
               value={`${timeRange} (${formatDurationLabel(duration)})`}
             />
             <Row label="Total" value={formatPrice(appointment.total_price)} highlight />
-            <Row label="Status" value={appointment.status} />
+            {"payment_reference" in appointment && appointment.payment_reference && (
+              <Row label="GCash ref" value={String(appointment.payment_reference)} />
+            )}
+            <Row label="Status" value={guestStatusLabel(appointment.status)} />
           </div>
 
           <div className="mt-8 space-y-3">
-            <Button href="/" className="w-full">
-              Back to Home
+            <Button href="/track" variant="outline" className="w-full">
+              Track my appointment
             </Button>
           </div>
 

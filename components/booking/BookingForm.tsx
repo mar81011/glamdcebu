@@ -21,7 +21,7 @@ import {
 } from "@/lib/booking/constants";
 import { slotEndLabel } from "@/lib/booking/slots";
 
-const STEPS = ["Services", "Date & Time", "Your Info", "Review"];
+const STEPS = ["Services", "Date & Time", "Your Info", "GCash", "Review"];
 
 export function BookingForm({
   initialCategories = [],
@@ -55,6 +55,15 @@ export function BookingForm({
   const [categories, setCategories] = useState<ServiceCategory[]>(initialCategories);
   const [catalogLoading, setCatalogLoading] = useState(initialCategories.length === 0);
   const [catalogError, setCatalogError] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentPreview, setPaymentPreview] = useState("");
+  const [gcash, setGcash] = useState({
+    number: "",
+    accountName: "",
+    qrUrl: "",
+    instructions: "",
+  });
 
   const orderedCategories = orderMenuCategories(categories);
   const allServices = orderedCategories.flatMap((c) => [...c.mainServices, ...c.addons]);
@@ -88,6 +97,8 @@ export function BookingForm({
           phone.trim().length >= 10 &&
           (visitType === "walk_in" || homeAddress.trim().length > 0)
         );
+      case 3:
+        return paymentReference.trim().length >= 5 && !!paymentProof;
       default:
         return true;
     }
@@ -96,19 +107,21 @@ export function BookingForm({
   function handleSubmit() {
     setSubmitting(true);
     setError("");
+    const form = new FormData();
+    form.set("customerName", name);
+    form.set("phone", phone);
+    form.set("notes", notes);
+    form.set("date", date);
+    form.set("time", time);
+    form.set("visitType", visitType);
+    if (visitType === "home_service") form.set("homeAddress", homeAddress);
+    form.set("paymentReference", paymentReference.trim());
+    selectedIds.forEach((id) => form.append("serviceIds", id));
+    if (paymentProof) form.set("paymentProof", paymentProof);
+
     fetch("/api/bookings", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerName: name,
-        phone,
-        notes,
-        date,
-        time,
-        serviceIds: selectedIds,
-        visitType,
-        homeAddress: visitType === "home_service" ? homeAddress : undefined,
-      }),
+      body: form,
     })
       .then((res) => res.json())
       .then((data) => {
@@ -148,7 +161,10 @@ export function BookingForm({
   useEffect(() => {
     fetch("/api/settings")
       .then((res) => res.json())
-      .then((data) => setHomeServiceFee(data.homeServiceFee ?? 0))
+      .then((data) => {
+        setHomeServiceFee(data.homeServiceFee ?? 0);
+        if (data.gcash) setGcash(data.gcash);
+      })
       .catch(() => setHomeServiceFee(0));
   }, []);
 
@@ -190,7 +206,7 @@ export function BookingForm({
             />
           ))}
         </div>
-        <div className="mt-2 hidden grid-cols-4 gap-1.5 md:grid">
+        <div className="mt-2 hidden grid-cols-5 gap-1.5 md:grid">
           {STEPS.map((label, i) => (
             <p
               key={label}
@@ -323,7 +339,8 @@ export function BookingForm({
             {time && (
               <p className="mt-2 text-xs text-brand-muted">
                 Your visit is {formatDurationLabel(durationMinutes)} from{" "}
-                {time} to {slotEndLabel(time, durationMinutes)}.
+                {time} to {slotEndLabel(time, durationMinutes)}. The next guest
+                can book at {slotEndLabel(time, durationMinutes)}.
               </p>
             )}
           </div>
@@ -427,6 +444,83 @@ export function BookingForm({
       )}
 
       {step === 3 && (
+        <div className="space-y-4 md:mx-auto md:max-w-xl">
+          <div className="rounded-2xl border border-brand-brown/12 bg-brand-cream/70 p-4">
+            <p className="text-center text-[11px] font-semibold tracking-wide text-brand-subtle uppercase">
+              Pay with GCash
+            </p>
+            <p className="mt-1 text-center text-2xl font-bold text-brand-ink">
+              {formatPrice(total)}
+            </p>
+            <p className="mt-1 text-center text-xs text-brand-muted">
+              Send this exact amount, then upload your receipt.
+            </p>
+          </div>
+
+          {gcash.qrUrl && (
+            <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gcash.qrUrl}
+                alt="GCash QR code"
+                className="h-48 w-48 rounded-2xl border border-brand-brown/15 bg-white object-contain p-2"
+              />
+            </div>
+          )}
+
+          {(gcash.number || gcash.accountName) && (
+            <div className="rounded-2xl border border-brand-brown/12 bg-white p-4 text-center">
+              {gcash.accountName && (
+                <p className="text-sm font-semibold text-brand-ink">{gcash.accountName}</p>
+              )}
+              {gcash.number && (
+                <p className="mt-1 text-lg font-bold tracking-wide text-brand-brown">
+                  {gcash.number}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="whitespace-pre-line rounded-2xl border border-brand-brown/10 bg-white p-4 text-sm leading-relaxed text-brand-muted">
+            {gcash.instructions}
+          </div>
+
+          <div>
+            <label className="label-kicker mb-2 block">GCash reference number</label>
+            <input
+              type="text"
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              placeholder="e.g. 1234 5678 901"
+              className="field"
+            />
+          </div>
+
+          <div>
+            <label className="label-kicker mb-2 block">Receipt screenshot</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="field file:mr-3 file:rounded-full file:border-0 file:bg-brand-beige file:px-3 file:py-1 file:text-xs file:font-semibold"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setPaymentProof(file);
+                setPaymentPreview(file ? URL.createObjectURL(file) : "");
+              }}
+            />
+            {paymentPreview && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={paymentPreview}
+                alt="Receipt preview"
+                className="mt-3 max-h-40 rounded-xl border border-brand-brown/15 object-contain"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
         <div className="space-y-3 text-sm text-brand-ink md:mx-auto md:max-w-xl">
           <ReviewRow
             label="Services"
@@ -470,6 +564,8 @@ export function BookingForm({
           )}
           <ReviewRow label="Name" value={name || "—"} />
           <ReviewRow label="Phone" value={phone || "—"} />
+          <ReviewRow label="Payment" value="GCash" />
+          <ReviewRow label="Reference" value={paymentReference || "—"} />
           {notes && <ReviewRow label="Notes" value={notes} />}
           <DiamondDivider />
           <div className="flex justify-between text-base font-bold">

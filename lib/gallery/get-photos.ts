@@ -1,5 +1,10 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  isMissingWorkPhotosTable,
+  listWorkPhotosFromStorage,
+} from "@/lib/gallery/work-storage";
 import type { WorkPhoto } from "@/lib/gallery/types";
 
 export type { WorkPhoto } from "@/lib/gallery/types";
@@ -12,11 +17,17 @@ export const getWorkPhotos = cache(async (): Promise<WorkPhoto[]> => {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
-  if (error || !data) return [];
+  if (!error && data) {
+    return data.map((row) => ({
+      id: row.id as string,
+      url: row.public_url as string,
+      alt: (row.alt as string) || "Work photo",
+    }));
+  }
 
-  return data.map((row) => ({
-    id: row.id as string,
-    url: row.public_url as string,
-    alt: (row.alt as string) || "Work photo",
-  }));
+  if (!isMissingWorkPhotosTable(error)) return [];
+
+  const admin = createAdminClient();
+  if (!admin) return [];
+  return listWorkPhotosFromStorage(admin);
 });

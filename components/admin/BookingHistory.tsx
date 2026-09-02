@@ -25,6 +25,9 @@ export interface HistoryAppointment {
   duration_minutes: number;
   visit_type: VisitType;
   total_price: number;
+  order_number?: string | null;
+  payment_reference?: string | null;
+  payment_proof_url?: string | null;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   appointment_services: Array<{
     services: { name: string } | { name: string }[] | null;
@@ -214,7 +217,19 @@ export function BookingHistory({
                   </p>
                   <p className="text-[10px] text-brand-subtle">
                     {visitTypeLabel(appt.visit_type)} · {appt.phone}
+                    {appt.order_number ? ` · ${appt.order_number}` : ""}
+                    {appt.payment_reference ? ` · GCash ${appt.payment_reference}` : ""}
                   </p>
+                  {appt.payment_proof_url && (
+                    <a
+                      href={appt.payment_proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-block text-[10px] font-semibold text-brand-brown underline-offset-2 hover:underline"
+                    >
+                      View receipt
+                    </a>
+                  )}
                 </div>
               );
             })}

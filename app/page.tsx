@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { ContactFooter } from "@/components/ui/ContactFooter";
+import { TrackAppointmentForm } from "@/components/booking/TrackAppointmentForm";
 import { WorkGallery } from "@/components/gallery/WorkGallery";
 import { FullMenu } from "@/components/services/FullMenu";
 import { PageShell } from "@/components/ui/PageShell";
@@ -20,6 +21,9 @@ export default async function HomePage() {
           <Button href="/book" className="mt-3 w-full max-w-xs">
             Book an appointment
           </Button>
+          <div className="mt-4 w-full max-w-md">
+            <TrackAppointmentForm />
+          </div>
         </div>
 
         <FullMenu categories={categories} />

@@ -3,8 +3,8 @@ export type VisitType = "walk_in" | "home_service";
 /** Each visit (lashes, nails, and add-ons together) is one 2.5-hour block. */
 export const APPOINTMENT_DURATION_MINUTES = 150;
 
-/** Start times every half hour so the next client can book as soon as a visit ends. */
-export const SLOT_START_INTERVAL_MINUTES = 30;
+/** Packed 2.5-hour starts, so 9:00 AM is followed by 11:30 AM. */
+export const SLOT_START_INTERVAL_MINUTES = APPOINTMENT_DURATION_MINUTES;
 
 export function formatDurationLabel(
   minutes = APPOINTMENT_DURATION_MINUTES,

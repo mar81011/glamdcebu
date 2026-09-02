@@ -8,6 +8,8 @@ test.describe("GLAM'D Cebu — public flows", () => {
     await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
     await expect(page.getByText("Classic")).toBeVisible();
     await expect(page.getByText("₱499")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Our work/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Track my appointment/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Book an appointment/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /^Book Now$/i })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Staff login/i })).toHaveCount(0);
@@ -29,21 +31,21 @@ test.describe("GLAM'D Cebu — public flows", () => {
   test("booking flow — multi-step UI", async ({ page }) => {
     await page.goto("/book");
     await expect(page.getByText("Book Appointment")).toBeVisible();
-    await expect(page.getByText(/Step 1 of 4/)).toBeVisible();
+    await expect(page.getByText(/Step 1 of 5/)).toBeVisible();
     await expect(page.getByRole("heading", { name: /Lashes & Brows/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
 
     await page.getByRole("button", { name: /Classic/i }).click();
     await page.getByRole("button", { name: /Continue/i }).click();
 
-    await expect(page.getByText(/Step 2 of 4/)).toBeVisible();
+    await expect(page.getByText(/Step 2 of 5/)).toBeVisible();
   });
 
   test("menu books from the homepage CTA", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: /Book an appointment/i }).click();
     await expect(page).toHaveURL(/\/book/);
-    await expect(page.getByText(/Step 1 of 4/)).toBeVisible();
+    await expect(page.getByText(/Step 1 of 5/)).toBeVisible();
   });
 
   test("admin route redirects unauthenticated users", async ({ page }) => {
@@ -105,15 +107,23 @@ test.describe("GLAM'D Cebu — booking API", () => {
     test.skip(slots.length === 0, "No slots available tomorrow");
 
     const bookRes = await request.post("/api/bookings", {
-      data: {
+      multipart: {
         customerName: "Playwright Test",
         phone: "09171234567",
         notes: "E2E test booking",
         date: dateKey,
         time: slots[0],
         mainServiceId,
-        addonIds: [],
         visitType: "walk_in",
+        paymentReference: "GCASHTEST123",
+        paymentProof: {
+          name: "receipt.png",
+          mimeType: "image/png",
+          buffer: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        },
       },
     });
     expect(bookRes.ok()).toBeTruthy();

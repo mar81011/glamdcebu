@@ -62,10 +62,10 @@ export function WorkPhotosSettings() {
 
   return (
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
-      <h3 className="font-serif text-brand-ink">Work photos</h3>
+      <h3 className="font-serif text-brand-ink">Homepage carousel</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Upload pictures of her work. They appear in the Our work carousel on the
-        home page.
+        Upload photos here. They appear in the Our work carousel on the home
+        page, even if you only add one.
       </p>
 
       <label className="mt-4 inline-flex cursor-pointer">
@@ -88,7 +88,12 @@ export function WorkPhotosSettings() {
       {loading ? (
         <p className="mt-4 text-sm text-brand-muted">Loading…</p>
       ) : photos.length === 0 ? (
-        <p className="mt-4 text-sm text-brand-muted">No photos yet.</p>
+        <div className="mt-4 flex aspect-[4/3] flex-col items-center justify-center rounded-2xl border border-dashed border-brand-brown/20 bg-brand-beige/60 px-4 text-center">
+          <p className="text-sm font-medium text-brand-ink">No photos yet</p>
+          <p className="mt-1 text-sm text-brand-muted">
+            The empty carousel still shows on the home page until you upload.
+          </p>
+        </div>
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-2">
           {photos.map((photo) => (

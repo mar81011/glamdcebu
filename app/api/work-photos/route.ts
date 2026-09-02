@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  MAX_WORK_PHOTOS,
+  WORK_BUCKET,
+  ensureWorkBucket,
+  isMissingWorkPhotosTable,
+  listWorkPhotosFromStorage,
+  publicWorkUrl,
+} from "@/lib/gallery/work-storage";
 
 const MAX_BYTES = 8 * 1024 * 1024;
-const MAX_PHOTOS = 24;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 async function requireOwner() {
@@ -34,17 +41,23 @@ export async function GET() {
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
-  if (error) {
+  if (!error) {
+    return NextResponse.json({
+      photos: (data ?? []).map((row) => ({
+        id: row.id,
+        url: row.public_url,
+        alt: row.alt,
+      })),
+    });
+  }
+
+  if (!isMissingWorkPhotosTable(error)) {
     return NextResponse.json({ photos: [] });
   }
 
-  return NextResponse.json({
-    photos: (data ?? []).map((row) => ({
-      id: row.id,
-      url: row.public_url,
-      alt: row.alt,
-    })),
-  });
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ photos: [] });
+  return NextResponse.json({ photos: await listWorkPhotosFromStorage(admin) });
 }
 
 export async function POST(request: Request) {
@@ -56,9 +69,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Server is missing storage credentials." }, { status: 500 });
   }
 
-  const { count } = await admin.from("work_photos").select("id", { count: "exact", head: true });
-  if ((count ?? 0) >= MAX_PHOTOS) {
-    return NextResponse.json({ error: `You can upload up to ${MAX_PHOTOS} photos.` }, { status: 400 });
+  await ensureWorkBucket(admin);
+
+  const { count, error: countError } = await admin
+    .from("work_photos")
+    .select("id", { count: "exact", head: true });
+  const photoCount = isMissingWorkPhotosTable(countError)
+    ? (await listWorkPhotosFromStorage(admin)).length
+    : (count ?? 0);
+
+  if (photoCount >= MAX_WORK_PHOTOS) {
+    return NextResponse.json({ error: `You can upload up to ${MAX_WORK_PHOTOS} photos.` }, { status: 400 });
   }
 
   const form = await request.formData();
@@ -77,7 +98,7 @@ export async function POST(request: Request) {
   const path = `${crypto.randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error: uploadError } = await admin.storage.from("work").upload(path, buffer, {
+  const { error: uploadError } = await admin.storage.from(WORK_BUCKET).upload(path, buffer, {
     contentType: file.type,
     upsert: false,
   });
@@ -85,22 +106,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
-  const { data: publicData } = admin.storage.from("work").getPublicUrl(path);
+  const publicUrl = publicWorkUrl(admin, path);
   const alt = String(form.get("alt") ?? "").trim().slice(0, 120);
 
   const { data, error } = await admin
     .from("work_photos")
     .insert({
       storage_path: path,
-      public_url: publicData.publicUrl,
+      public_url: publicUrl,
       alt,
-      sort_order: count ?? 0,
+      sort_order: photoCount,
     })
     .select("id, public_url, alt")
     .single();
 
   if (error) {
-    await admin.storage.from("work").remove([path]);
+    if (isMissingWorkPhotosTable(error)) {
+      return NextResponse.json({
+        photo: { id: path, url: publicUrl, alt: alt || "Work photo" },
+      });
+    }
+    await admin.storage.from(WORK_BUCKET).remove([path]);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
@@ -127,15 +153,16 @@ export async function DELETE(request: Request) {
     .from("work_photos")
     .select("storage_path")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
-  if (row?.storage_path) {
-    await admin.storage.from("work").remove([row.storage_path]);
-  }
+  const storagePath = row?.storage_path ?? id;
+  await admin.storage.from(WORK_BUCKET).remove([storagePath]);
 
-  const { error } = await admin.from("work_photos").delete().eq("id", id);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (row) {
+    const { error } = await admin.from("work_photos").delete().eq("id", id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

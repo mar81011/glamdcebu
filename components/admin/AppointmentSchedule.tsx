@@ -20,6 +20,9 @@ export interface ScheduleAppointment {
   visit_type: VisitType;
   home_address: string | null;
   total_price: number;
+  order_number?: string | null;
+  payment_reference?: string | null;
+  payment_proof_url?: string | null;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   appointment_services: Array<{
     services: { name: string } | { name: string }[] | null;
@@ -159,8 +162,28 @@ export function AppointmentSchedule({
                 <div className="mt-3 border-t border-brand-brown/8 pt-3">
                   <p className="font-semibold text-brand-ink">{appt.customer_name}</p>
                   <p className="text-sm text-brand-muted">{appt.phone}</p>
+                  {appt.order_number && (
+                    <p className="mt-1 font-mono text-xs font-semibold text-brand-brown">
+                      {appt.order_number}
+                    </p>
+                  )}
                   <p className="mt-2 text-sm font-medium text-brand-ink">{serviceNames}</p>
                   <p className="mt-1 text-xs text-brand-muted">{formatPrice(appt.total_price)}</p>
+                  {appt.payment_reference && (
+                    <p className="mt-1 text-xs text-brand-muted">
+                      GCash ref: {appt.payment_reference}
+                    </p>
+                  )}
+                  {appt.payment_proof_url && (
+                    <a
+                      href={appt.payment_proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-block text-xs font-semibold text-brand-brown underline-offset-2 hover:underline"
+                    >
+                      View receipt
+                    </a>
+                  )}
                   {appt.visit_type === "home_service" && appt.home_address && (
                     <p className="mt-1 text-xs text-brand-muted">
                       {appt.home_address}

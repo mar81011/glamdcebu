@@ -14,6 +14,7 @@ import { BusinessHoursSettings } from "@/components/admin/BusinessHoursSettings"
 import { AppointmentSchedule } from "@/components/admin/AppointmentSchedule";
 import { HomeServiceSettings } from "@/components/admin/HomeServiceSettings";
 import { WorkPhotosSettings } from "@/components/admin/WorkPhotosSettings";
+import { GcashSettings } from "@/components/admin/GcashSettings";
 import { visitTypeLabel, type VisitType } from "@/lib/booking/constants";
 import { toDateKey } from "@/lib/calendar-utils";
 
@@ -26,6 +27,9 @@ interface Appointment {
   visit_type: VisitType;
   home_address: string | null;
   total_price: number;
+  order_number: string | null;
+  payment_reference: string | null;
+  payment_proof_url: string | null;
   status: "pending" | "confirmed" | "cancelled" | "completed";
   appointment_services: Array<{
     services: { name: string } | { name: string }[] | null;
@@ -45,6 +49,21 @@ export function CalendarView() {
 
   async function loadAppointments() {
     setLoading(true);
+    const withPayment = await supabase
+      .from("appointments")
+      .select(
+        `id, customer_name, phone, appointment_at, duration_minutes, visit_type, home_address,
+         total_price, status, order_number, payment_reference, payment_proof_url,
+         appointment_services ( services ( name ) )`,
+      )
+      .order("appointment_at", { ascending: true });
+
+    if (!withPayment.error) {
+      setAppointments((withPayment.data as unknown as Appointment[]) ?? []);
+      setLoading(false);
+      return;
+    }
+
     const { data } = await supabase
       .from("appointments")
       .select(
@@ -53,7 +72,14 @@ export function CalendarView() {
          appointment_services ( services ( name ) )`,
       )
       .order("appointment_at", { ascending: true });
-    setAppointments((data as unknown as Appointment[]) ?? []);
+    setAppointments(
+      ((data as unknown as Appointment[]) ?? []).map((row) => ({
+        ...row,
+        order_number: null,
+        payment_reference: null,
+        payment_proof_url: null,
+      })),
+    );
     setLoading(false);
   }
 
@@ -125,10 +151,11 @@ export function CalendarView() {
 
       {tab === "settings" && (
         <div className="space-y-4">
+          <WorkPhotosSettings />
+          <GcashSettings />
           <AdminPushSettings />
           <AccountSettings />
           <BrandSettings />
-          <WorkPhotosSettings />
           <ContactSettings />
           <AppointmentReminderSettings />
           <BusinessHoursSettings />
