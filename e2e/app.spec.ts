@@ -8,7 +8,7 @@ test.describe("GLAM'D Cebu — public flows", () => {
     await expect(page.getByRole("heading", { name: /^Nails$/i })).toBeVisible();
     await expect(page.getByText("Classic")).toBeVisible();
     await expect(page.getByText("₱499")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Our work/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /My Craft/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Track my appointment/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Book an appointment/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /^Book Now$/i })).toHaveCount(0);

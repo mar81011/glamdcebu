@@ -62,10 +62,10 @@ export function WorkPhotosSettings() {
 
   return (
     <div className="rounded-2xl border border-brand-brown/12 bg-white p-4">
-      <h3 className="font-serif text-brand-ink">Homepage carousel</h3>
+      <h3 className="font-serif text-brand-ink">My Craft carousel</h3>
       <p className="mt-1 text-sm text-brand-muted">
-        Upload your real work photos here. They replace the sample carousel on
-        the home page as soon as you add at least one.
+        Upload your real work photos here (up to 24). They replace the sample
+        carousel on the home page as soon as you add at least one.
       </p>
 
       <label className="mt-4 inline-flex cursor-pointer">

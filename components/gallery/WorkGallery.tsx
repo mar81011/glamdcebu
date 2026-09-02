@@ -17,7 +17,7 @@ export function WorkGallery({ photos }: { photos: WorkPhoto[] }) {
 
   return (
     <section id="work" className="mt-8">
-      <h2 className="mb-3 text-center font-serif text-2xl text-brand-ink">Our work</h2>
+      <h2 className="mb-3 text-center font-serif text-2xl text-brand-ink">My Craft</h2>
       {photos.length === 0 ? (
         <div className="flex aspect-[4/3] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-brand-brown/20 bg-brand-beige/70 px-6 text-center">
           <p className="max-w-xs text-sm text-brand-muted">
