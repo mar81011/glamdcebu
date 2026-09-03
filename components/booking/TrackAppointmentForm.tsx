@@ -76,7 +76,7 @@ export function TrackAppointmentForm({
           onChange={(e) => setOrder(e.target.value.toUpperCase())}
           placeholder="Order number (GLAM-XXXXXX)"
           aria-label="Order number"
-          className="field flex-1"
+          className="field flex-1 sm:min-w-[280px]"
         />
         <Button type="submit" disabled={loading} className="shrink-0 px-5 py-2.5 text-sm">
           {loading ? "Checking…" : submitLabel}
